@@ -85,13 +85,15 @@ export default class GameManager {
   /**
    * 计算星级（1-3星）
    */
-  public calculateStars(): number {
-    const accuracy = this.correctAnswers / this.totalQuestions;
-    
-    if (accuracy >= 0.95) return 3; // 完美
-    if (accuracy >= 0.80) return 2; // 良好
-    if (accuracy >= 0.60) return 1; // 及格
-    return 0; // 未完成
+  /**
+   * 根据主角剩余血量计算星星数
+   * @param healthPercentage 剩余血量百分比 (0-100)
+   */
+  public calculateStars(healthPercentage: number): number {
+    if (healthPercentage >= 100) return 3;  // 满血：3星
+    if (healthPercentage >= 60) return 2;   // 60-100血：2星
+    if (healthPercentage > 0) return 1;     // 大于0血：1星
+    return 0;                                // 死亡：0星
   }
   
   /**

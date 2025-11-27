@@ -311,7 +311,7 @@ export default class SettingsScene extends Phaser.Scene {
     }).setOrigin(0, 0.5);
     
     // 当前名字
-    const nameText = this.add.text(x + 50, y, data.playerName, {
+    const nameText = this.add.text(x + 10, y, data.playerName, {
       fontFamily: 'Arial Black, Microsoft YaHei',
       fontSize: '32px',
       color: '#ffffff',
@@ -320,13 +320,151 @@ export default class SettingsScene extends Phaser.Scene {
     });
     nameText.setOrigin(0, 0.5);
     
-    // 提示（移到卡片外下方）
-    const hint = this.add.text(x, y + 55, '(名字需要在浏览器控制台修改)', {
-      fontFamily: 'Microsoft YaHei',
-      fontSize: '18px',
-      color: '#666666'
+    // 修改按钮
+    ButtonFactory.createButton(this, {
+      x: x + 220,
+      y: y,
+      width: 100,
+      height: 44,
+      text: '修改',
+      icon: '✏️',
+      color: 0x9b59b6,
+      fontSize: '24px',
+      callback: () => {
+        this.showNameInputDialog();
+      }
     });
-    hint.setOrigin(0.5);
+  }
+  
+  /**
+   * 显示名字输入对话框
+   */
+  private showNameInputDialog(): void {
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    
+    // 半透明遮罩
+    const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.7);
+    overlay.setOrigin(0);
+    overlay.setDepth(100);
+    
+    // 对话框背景
+    const dialogWidth = 500;
+    const dialogHeight = 280;
+    const dialogBg = this.add.rectangle(width / 2, height / 2, dialogWidth, dialogHeight, 0xFFFFFF);
+    dialogBg.setStrokeStyle(4, 0xFFD700);
+    dialogBg.setDepth(101);
+    
+    // 标题
+    const titleText = this.add.text(width / 2, height / 2 - 100, '修改名字', {
+      fontFamily: 'Microsoft YaHei',
+      fontSize: '28px',
+      color: '#FF69B4',
+      fontStyle: 'bold'
+    });
+    titleText.setOrigin(0.5);
+    titleText.setDepth(102);
+    
+    // 提示文本
+    const promptText = this.add.text(width / 2, height / 2 - 50, '请输入你的新名字：', {
+      fontFamily: 'Microsoft YaHei',
+      fontSize: '22px',
+      color: '#333333'
+    });
+    promptText.setOrigin(0.5);
+    promptText.setDepth(102);
+    
+    // 创建HTML输入框
+    const inputElement = document.createElement('input');
+    inputElement.type = 'text';
+    inputElement.placeholder = '请输入名字（2-8个字）';
+    inputElement.maxLength = 8;
+    inputElement.style.position = 'absolute';
+    inputElement.style.left = '50%';
+    inputElement.style.top = '50%';
+    inputElement.style.transform = 'translate(-50%, -50%)';
+    inputElement.style.width = '300px';
+    inputElement.style.height = '40px';
+    inputElement.style.fontSize = '20px';
+    inputElement.style.textAlign = 'center';
+    inputElement.style.border = '2px solid #FFD700';
+    inputElement.style.borderRadius = '10px';
+    inputElement.style.outline = 'none';
+    inputElement.style.zIndex = '1000';
+    inputElement.value = DataManager.getInstance().playerData.playerName;
+    document.body.appendChild(inputElement);
+    inputElement.focus();
+    inputElement.select();
+    
+    // 确认按钮
+    const confirmBtn = ButtonFactory.createButton(this, {
+      x: width / 2 - 80,
+      y: height / 2 + 80,
+      width: 120,
+      height: 50,
+      text: '确认 ✓',
+      color: 0x27ae60,
+      fontSize: '24px',
+      callback: () => {
+        const name = inputElement.value.trim();
+        if (name.length < 2) {
+          alert('名字至少需要2个字哦！');
+          return;
+        }
+        
+        // 保存名字
+        DataManager.getInstance().playerData.playerName = name;
+        DataManager.getInstance().saveData();
+        
+        // 移除输入框和对话框
+        document.body.removeChild(inputElement);
+        overlay.destroy();
+        dialogBg.destroy();
+        titleText.destroy();
+        promptText.destroy();
+        confirmBtn.destroy();
+        cancelBtn.destroy();
+        
+        // 刷新设置界面
+        this.scene.restart();
+      }
+    });
+    confirmBtn.setDepth(102);
+    
+    // 取消按钮
+    const cancelBtn = ButtonFactory.createButton(this, {
+      x: width / 2 + 80,
+      y: height / 2 + 80,
+      width: 120,
+      height: 50,
+      text: '取消',
+      color: 0x95a5a6,
+      fontSize: '24px',
+      callback: () => {
+        document.body.removeChild(inputElement);
+        overlay.destroy();
+        dialogBg.destroy();
+        titleText.destroy();
+        promptText.destroy();
+        confirmBtn.destroy();
+        cancelBtn.destroy();
+      }
+    });
+    cancelBtn.setDepth(102);
+    
+    // 按回车键确认
+    inputElement.addEventListener('keypress', (event) => {
+      if (event.key === 'Enter') {
+        confirmBtn.emit('pointerdown');
+      }
+    });
+    
+    // 按ESC键取消
+    inputElement.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        cancelBtn.emit('pointerdown');
+      }
+    });
   }
   
   /**

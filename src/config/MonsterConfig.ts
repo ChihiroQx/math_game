@@ -34,7 +34,7 @@ export const MONSTERS: Record<string, MonsterData> = {
     
     baseHealth: 50,
     baseDamage: 10,
-    moveSpeed: 60,
+    moveSpeed: 20,          // 再降低一半：40 -> 20
     attackRange: 150,
     attackInterval: 2000,
     
@@ -51,7 +51,7 @@ export const MONSTERS: Record<string, MonsterData> = {
     
     baseHealth: 60,
     baseDamage: 12,
-    moveSpeed: 55,
+    moveSpeed: 18,          // 再降低一半：36 -> 18
     attackRange: 150,
     attackInterval: 2000,
     
@@ -68,7 +68,7 @@ export const MONSTERS: Record<string, MonsterData> = {
     
     baseHealth: 70,
     baseDamage: 15,
-    moveSpeed: 50,
+    moveSpeed: 17,          // 再降低一半：33 -> 17
     attackRange: 150,
     attackInterval: 2000,
     
@@ -85,7 +85,7 @@ export const MONSTERS: Record<string, MonsterData> = {
     
     baseHealth: 80,
     baseDamage: 18,
-    moveSpeed: 65,
+    moveSpeed: 22,          // 再降低一半：43 -> 22
     attackRange: 150,
     attackInterval: 1800,
     
@@ -102,7 +102,7 @@ export const MONSTERS: Record<string, MonsterData> = {
     
     baseHealth: 65,
     baseDamage: 14,
-    moveSpeed: 75,          // 移动速度快
+    moveSpeed: 25,          // 再降低一半：50 -> 25（快速型）
     attackRange: 150,
     attackInterval: 1800,
     
@@ -119,7 +119,7 @@ export const MONSTERS: Record<string, MonsterData> = {
     
     baseHealth: 100,        // 高生命
     baseDamage: 12,
-    moveSpeed: 45,          // 移动慢
+    moveSpeed: 15,          // 再降低一半：30 -> 15（移动最慢）
     attackRange: 150,
     attackInterval: 2200,
     
@@ -136,7 +136,7 @@ export const MONSTERS: Record<string, MonsterData> = {
     
     baseHealth: 90,
     baseDamage: 20,
-    moveSpeed: 58,
+    moveSpeed: 19,          // 再降低一半：38 -> 19
     attackRange: 150,
     attackInterval: 1800,
     
@@ -153,7 +153,7 @@ export const MONSTERS: Record<string, MonsterData> = {
     
     baseHealth: 120,
     baseDamage: 25,
-    moveSpeed: 50,
+    moveSpeed: 18,          // 再降低一半：35 -> 18
     attackRange: 150,
     attackInterval: 1500,
     

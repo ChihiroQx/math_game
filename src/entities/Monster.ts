@@ -40,7 +40,19 @@ export class Monster {
     this.monsterConfig = config;
     
     // 计算关卡倍率（基于difficulty）
-    const levelMultiplier = 1 + (difficulty - 1) * 0.5;
+    // 调整倍率曲线，让低关卡更容易
+    let levelMultiplier = 1.0;
+    if (difficulty === 1) {
+      levelMultiplier = 0.7;  // 第1关：怪物血量降低到70%
+    } else if (difficulty === 2) {
+      levelMultiplier = 0.9;  // 第2关：90%
+    } else if (difficulty === 3) {
+      levelMultiplier = 1.1;  // 第3关：110%
+    } else if (difficulty === 4) {
+      levelMultiplier = 1.3;  // 第4关：130%
+    } else {
+      levelMultiplier = 1.5;  // 第5关+：150%
+    }
     
     // 使用配置的属性
     this.spritePrefix = this.monsterConfig.spritePrefix;

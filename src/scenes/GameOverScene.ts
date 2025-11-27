@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import DataManager from '../managers/DataManager';
 import ButtonFactory from '../utils/ButtonFactory';
+import { LeaderboardManager } from '../managers/LeaderboardManager';
 
 /**
  * 游戏结算场景 - 统一UI设计（使用ButtonFactory）
@@ -12,9 +13,63 @@ export default class GameOverScene extends Phaser.Scene {
     super({ key: 'GameOverScene' });
   }
   
-  create(data: { victory: boolean; stars: number; score: number; correct: number; total: number }): void {
+  async create(data: { victory: boolean; stars: number; score: number; correct: number; total: number }): Promise<void> {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
+    
+    // 如果配置了在线排行榜且玩家获胜，上传分数
+    if (data.victory && LeaderboardManager.isConfigured()) {
+      const dataManager = DataManager.getInstance();
+      const playerData = dataManager.playerData;
+      
+      // 计算总星数和总金币
+      let totalStars = 0;
+      let totalCoins = playerData.coins;
+      let maxWorld = 0;
+      let maxLevel = 0;
+      
+      // 找出最大通关数
+      for (let world = 1; world <= 3; world++) {
+        for (let level = 1; level <= 5; level++) {
+          const stars = dataManager.getLevelStars(world, level);
+          totalStars += stars;
+          
+          // 如果这关有星星（已通关），更新最大通关
+          if (stars > 0) {
+            maxWorld = world;
+            maxLevel = level;
+          }
+        }
+      }
+      
+      // 计算最大通关数：世界×100 + 关卡（例如：102 = 世界1第2关）
+      const maxLevelCompleted = maxWorld * 100 + maxLevel;
+      
+      console.log('准备上传到排行榜:', {
+        playerName: playerData.playerName,
+        totalStars,
+        totalCoins,
+        maxLevelCompleted,
+        maxLevelText: `世界${maxWorld}-关卡${maxLevel}`
+      });
+      
+      // 异步上传分数（不阻塞UI）
+      LeaderboardManager.getInstance().submitScore(
+        playerData.playerName || '勇敢的小朋友',
+        totalStars,
+        totalCoins,
+        data.score,
+        maxLevelCompleted
+      ).then(success => {
+        if (success) {
+          console.log('✅ 排行榜数据上传成功！');
+        } else {
+          console.warn('❌ 排行榜数据上传失败');
+        }
+      }).catch(err => {
+        console.error('❌ 上传分数失败:', err);
+      });
+    }
     
     // 背景
     this.createBackground();
@@ -60,11 +115,11 @@ export default class GameOverScene extends Phaser.Scene {
     
     // 星星显示（只在胜利时显示）
     if (data.victory) {
-      this.createStars(width, height * 0.3, data.stars);
+      this.createStars(width / 2, height * 0.32, data.stars);
     }
     
     // 得分
-    const scoreY = data.victory ? height * 0.5 : height * 0.35;
+    const scoreY = data.victory ? height * 0.48 : height * 0.35;
     const scoreText = this.add.text(width / 2, scoreY, `得分: ${data.score}`, {
       fontFamily: 'Microsoft YaHei',
       fontSize: '36px',
@@ -176,6 +231,7 @@ export default class GameOverScene extends Phaser.Scene {
         fontSize: '80px'
       });
       star.setOrigin(0.5);
+      star.setPadding(8, 8, 8, 8);
       star.setAlpha(0);
       star.setScale(0);
       
@@ -205,8 +261,9 @@ export default class GameOverScene extends Phaser.Scene {
   private createButtons(width: number, height: number, victory: boolean): void {
     const buttonY = height * 0.8;
     
-    // 下一关按钮（只在胜利时显示）
     if (victory) {
+      // 胜利时显示：下一关 + 重新挑战
+      // 下一关按钮
       ButtonFactory.createButton(this, {
         x: width / 2 - 150,
         y: buttonY,
@@ -222,24 +279,58 @@ export default class GameOverScene extends Phaser.Scene {
           this.scene.start('WorldMapScene');
         }
       });
+      
+      // 重新挑战按钮
+      ButtonFactory.createButton(this, {
+        x: width / 2 + 150,
+        y: buttonY,
+        width: 220,
+        height: 54,
+        text: '重新挑战',
+        icon: '🔄',
+        color: 0xFF69B4,
+        callback: () => {
+          // 重置游戏管理器数据
+          const GameManager = require('../managers/GameManager').default;
+          GameManager.getInstance().resetGameStats();
+          this.scene.start('GamePlayScene');
+        }
+      });
+    } else {
+      // 失败时显示：重新挑战 + 返回主菜单
+      // 重新挑战按钮
+      ButtonFactory.createButton(this, {
+        x: width / 2 - 150,
+        y: buttonY,
+        width: 220,
+        height: 54,
+        text: '重新挑战',
+        icon: '🔄',
+        color: 0xFF69B4,
+        callback: () => {
+          // 重置游戏管理器数据
+          const GameManager = require('../managers/GameManager').default;
+          GameManager.getInstance().resetGameStats();
+          this.scene.start('GamePlayScene');
+        }
+      });
+      
+      // 返回主菜单按钮
+      ButtonFactory.createButton(this, {
+        x: width / 2 + 150,
+        y: buttonY,
+        width: 220,
+        height: 54,
+        text: '返回主菜单',
+        icon: '🏠',
+        color: 0x3498db,
+        callback: () => {
+          // 重置游戏管理器数据
+          const GameManager = require('../managers/GameManager').default;
+          GameManager.getInstance().resetGameStats();
+          this.scene.start('MainMenuScene');
+        }
+      });
     }
-    
-    // 重新挑战按钮
-    const retryX = victory ? width / 2 + 150 : width / 2;
-    ButtonFactory.createButton(this, {
-      x: retryX,
-      y: buttonY,
-      width: 220,
-      height: 54,
-      text: '重新挑战',
-      icon: '🔄',
-      color: 0xFF69B4,
-      callback: () => {
-        // 重置游戏管理器数据
-        const GameManager = require('../managers/GameManager').default;
-        GameManager.getInstance().resetGameStats();
-        this.scene.start('GamePlayScene');
-      }
-    });
   }
 }

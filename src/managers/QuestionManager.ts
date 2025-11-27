@@ -102,12 +102,29 @@ export default class QuestionManager {
   }
   
   /**
-   * 获取当前题目
+   * 获取当前题目（支持无限答题）
    */
   public getQuestion(index: number): QuestionData | null {
+    // 如果索引在范围内，直接返回
     if (index >= 0 && index < this.currentLevelQuestions.length) {
       return this.currentLevelQuestions[index];
     }
+    
+    // 如果索引超出范围，动态生成新题目
+    if (index >= this.currentLevelQuestions.length && this.currentLevelQuestions.length > 0) {
+      console.log(`索引 ${index} 超出范围，动态生成新题目...`);
+      
+      // 从第一题获取题型和难度信息
+      const firstQuestion = this.currentLevelQuestions[0];
+      const newQuestion = this.generateQuestion(firstQuestion.type, firstQuestion.difficulty);
+      
+      // 添加到题库中
+      this.currentLevelQuestions.push(newQuestion);
+      
+      console.log(`新题目已生成: ${newQuestion.questionText}`);
+      return newQuestion;
+    }
+    
     return null;
   }
   

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import DataManager from '../managers/DataManager';
 import ButtonFactory from '../utils/ButtonFactory';
+import { LeaderboardManager } from '../managers/LeaderboardManager';
 
 /**
  * 排行榜场景 - 统一UI设计（使用ButtonFactory）
@@ -12,7 +13,7 @@ export default class LeaderboardScene extends Phaser.Scene {
     super({ key: 'LeaderboardScene' });
   }
   
-  create(): void {
+  async create(): Promise<void> {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
     
@@ -29,7 +30,7 @@ export default class LeaderboardScene extends Phaser.Scene {
     this.createBackButton();
     
     // 排行榜内容
-    this.createLeaderboard(width, height);
+    await this.createLeaderboard(width, height);
   }
   
   update(): void {
@@ -150,19 +151,75 @@ export default class LeaderboardScene extends Phaser.Scene {
   /**
    * 创建排行榜
    */
-  private createLeaderboard(width: number, height: number): void {
+  private async createLeaderboard(width: number, height: number): Promise<void> {
     const data = DataManager.getInstance().playerData;
     
+    // 检查是否配置了在线排行榜
+    const isOnline = LeaderboardManager.isConfigured();
+    
     // 排行榜说明
-    const infoText = this.add.text(width / 2, 150, '本地排行榜（同一设备上的记录）', {
+    const infoText = this.add.text(width / 2, 150, 
+      isOnline ? '🌐 全球排行榜（所有玩家）' : '💻 本地排行榜（同一设备上的记录）', {
       fontFamily: 'Microsoft YaHei',
       fontSize: '20px',
-      color: '#CCCCCC'
+      color: '#FFFFFF',
+      stroke: '#000000',
+      strokeThickness: 3,
+      shadow: {
+        offsetX: 2,
+        offsetY: 2,
+        color: '#000000',
+        blur: 4,
+        fill: true
+      }
     });
     infoText.setOrigin(0.5);
     
-    // 获取或创建排行榜数据
-    const leaderboard = this.getLeaderboardData();
+    // 如果配置了在线排行榜，显示加载提示
+    let loadingText: Phaser.GameObjects.Text | null = null;
+    if (isOnline) {
+      loadingText = this.add.text(width / 2, 200, '加载中...', {
+        fontFamily: 'Microsoft YaHei',
+        fontSize: '18px',
+        color: '#FFFFFF',
+        stroke: '#000000',
+        strokeThickness: 3
+      });
+      loadingText.setOrigin(0.5);
+    }
+    
+    // 获取排行榜数据（在线或本地）
+    let leaderboard: Array<{name: string, stars: number, coins: number, maxLevel?: string}> = [];
+    
+    if (isOnline) {
+      // 从 Supabase 获取在线排行榜
+      const manager = LeaderboardManager.getInstance();
+      const onlineData = await manager.getTopPlayers(10);
+      leaderboard = onlineData.map(entry => {
+        // 将数字转换为文本（例如：102 -> "世界1-关卡2"）
+        let maxLevelText = '未通关';
+        if (entry.max_level_completed && entry.max_level_completed > 0) {
+          const world = Math.floor(entry.max_level_completed / 100);
+          const level = entry.max_level_completed % 100;
+          maxLevelText = `世界${world}-关卡${level}`;
+        }
+        
+        return {
+          name: entry.player_name,
+          stars: entry.total_stars,
+          coins: entry.total_coins,
+          maxLevel: maxLevelText
+        };
+      });
+      
+      // 移除加载提示
+      if (loadingText) {
+        loadingText.destroy();
+      }
+    } else {
+      // 使用本地排行榜
+      leaderboard = this.getLeaderboardData();
+    }
     
     // 显示排行榜
     const startY = 220;
@@ -174,7 +231,16 @@ export default class LeaderboardScene extends Phaser.Scene {
         fontFamily: 'Microsoft YaHei',
         fontSize: '28px',
         color: '#ffffff',
-        align: 'center'
+        align: 'center',
+        stroke: '#000000',
+        strokeThickness: 5,
+        shadow: {
+          offsetX: 3,
+          offsetY: 3,
+          color: '#000000',
+          blur: 5,
+          fill: true
+        }
       });
       emptyText.setOrigin(0.5);
     } else {
@@ -187,39 +253,70 @@ export default class LeaderboardScene extends Phaser.Scene {
         const rank = i + 1;
         const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}.`;
         
-        // 背景
+        // 背景（降低透明度，让背景更深一些）
         const bgColor = rank === 1 ? 0xFFD700 : rank === 2 ? 0xC0C0C0 : rank === 3 ? 0xCD7F32 : 0x4B0082;
-        const bg = this.add.rectangle(width / 2, y, width - 100, 60, bgColor, 0.3);
-        bg.setStrokeStyle(2, 0xFFFFFF, 0.5);
+        const bg = this.add.rectangle(width / 2, y, width - 100, 60, bgColor, 0.5);
+        bg.setStrokeStyle(2, 0xFFFFFF, 0.8);
         
         // 排名
-        const medalText = this.add.text(width * 0.15, y, medal, {
+        const medalText = this.add.text(width * 0.12, y, medal, {
           fontFamily: 'Arial Black',
-          fontSize: '32px',
-          color: '#ffffff'
+          fontSize: '28px',
+          color: '#ffffff',
+          stroke: '#000000',
+          strokeThickness: 4
         });
         medalText.setOrigin(0.5);
         medalText.setPadding(4, 4, 4, 4);
         
-        // 玩家名
-        this.add.text(width * 0.35, y, entry.name, {
+        // 玩家名（添加黑色描边和阴影）
+        this.add.text(width * 0.25, y - 15, entry.name, {
           fontFamily: 'Microsoft YaHei',
-          fontSize: '24px',
-          color: '#ffffff'
+          fontSize: '22px',
+          color: '#ffffff',
+          fontStyle: 'bold',
+          stroke: '#000000',
+          strokeThickness: 4,
+          shadow: {
+            offsetX: 2,
+            offsetY: 2,
+            color: '#000000',
+            blur: 3,
+            fill: true
+          }
         }).setOrigin(0, 0.5);
         
-        // 星星数
-        this.add.text(width * 0.65, y, `⭐ ${entry.stars}`, {
-          fontFamily: 'Arial',
-          fontSize: '24px',
-          color: '#FFA500'
-        }).setOrigin(0.5);
+        // 通关进度（在名字下方，改为白色加描边）
+        if (entry.maxLevel) {
+          this.add.text(width * 0.25, y + 12, `📖 ${entry.maxLevel}`, {
+            fontFamily: 'Microsoft YaHei',
+            fontSize: '16px',
+            color: '#FFFFFF',
+            stroke: '#000000',
+            strokeThickness: 3
+          }).setOrigin(0, 0.5);
+        }
         
-        // 金币数
-        const coinText1 = this.add.text(width * 0.85, y, `💰 ${entry.coins}`, {
+        // 星星数（白色文字加描边）
+        const starText = this.add.text(width * 0.60, y, `⭐${entry.stars}`, {
           fontFamily: 'Arial',
-          fontSize: '24px',
-          color: '#FFD700'
+          fontSize: '22px',
+          color: '#FFFFFF',
+          stroke: '#000000',
+          strokeThickness: 4,
+          fontStyle: 'bold'
+        });
+        starText.setOrigin(0.5);
+        starText.setPadding(4, 4, 4, 4);
+        
+        // 金币数（白色文字加描边）
+        const coinText1 = this.add.text(width * 0.80, y, `💰${entry.coins}`, {
+          fontFamily: 'Arial',
+          fontSize: '22px',
+          color: '#FFFFFF',
+          stroke: '#000000',
+          strokeThickness: 4,
+          fontStyle: 'bold'
         });
         coinText1.setOrigin(1, 0.5);
         coinText1.setPadding(4, 4, 4, 4);
@@ -228,32 +325,59 @@ export default class LeaderboardScene extends Phaser.Scene {
     
     // 当前玩家信息
     const playerY = height - 100;
-    const playerBg = this.add.rectangle(width / 2, playerY, width - 100, 60, 0xFF69B4, 0.5);
+    const playerBg = this.add.rectangle(width / 2, playerY, width - 100, 60, 0xFF69B4, 0.6);
     playerBg.setStrokeStyle(3, 0xFFFFFF);
     
     this.add.text(width * 0.15, playerY, '你', {
       fontFamily: 'Microsoft YaHei',
       fontSize: '28px',
       color: '#ffffff',
-      fontStyle: 'bold'
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 5,
+      shadow: {
+        offsetX: 2,
+        offsetY: 2,
+        color: '#000000',
+        blur: 4,
+        fill: true
+      }
     }).setOrigin(0.5);
     
     this.add.text(width * 0.35, playerY, data.playerName, {
       fontFamily: 'Microsoft YaHei',
       fontSize: '24px',
-      color: '#ffffff'
+      color: '#ffffff',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 4,
+      shadow: {
+        offsetX: 2,
+        offsetY: 2,
+        color: '#000000',
+        blur: 3,
+        fill: true
+      }
     }).setOrigin(0, 0.5);
     
-    this.add.text(width * 0.65, playerY, `⭐ ${data.totalStars}`, {
+    const starText2 = this.add.text(width * 0.65, playerY, `⭐ ${data.totalStars}`, {
       fontFamily: 'Arial',
       fontSize: '24px',
-      color: '#FFA500'
-    }).setOrigin(0.5);
+      color: '#FFFFFF',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 4
+    });
+    starText2.setOrigin(0.5);
+    starText2.setPadding(4, 4, 4, 4);
     
     const coinText2 = this.add.text(width * 0.85, playerY, `💰 ${data.coins}`, {
       fontFamily: 'Arial',
       fontSize: '24px',
-      color: '#FFD700'
+      color: '#FFFFFF',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 4
     });
     coinText2.setOrigin(1, 0.5);
     coinText2.setPadding(4, 4, 4, 4);

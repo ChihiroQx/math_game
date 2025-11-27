@@ -37,6 +37,9 @@ export default class MainMenuScene extends Phaser.Scene {
     
     // 播放背景音乐（如果有）
     // AudioManager.getInstance().playMusic('mainMenu');
+    
+    // 检查是否是首次启动，如果是则提示输入名字
+    this.checkFirstLaunch();
   }
   
   update(): void {
@@ -350,5 +353,120 @@ export default class MainMenuScene extends Phaser.Scene {
    */
   private showSettings(): void {
     this.scene.start('SettingsScene');
+  }
+  
+  /**
+   * 检查是否首次启动
+   */
+  private checkFirstLaunch(): void {
+    const isFirstLaunch = localStorage.getItem('game_first_launch');
+    if (!isFirstLaunch) {
+      // 延迟显示，让主菜单先加载完成
+      this.time.delayedCall(500, () => {
+        this.showNameInputDialog();
+      });
+      localStorage.setItem('game_first_launch', 'false');
+    }
+  }
+  
+  /**
+   * 显示名字输入对话框
+   */
+  private showNameInputDialog(): void {
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    
+    // 半透明遮罩
+    const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.7);
+    overlay.setOrigin(0);
+    overlay.setDepth(100);
+    
+    // 对话框背景
+    const dialogWidth = 500;
+    const dialogHeight = 280;
+    const dialogBg = this.add.rectangle(width / 2, height / 2, dialogWidth, dialogHeight, 0xFFFFFF);
+    dialogBg.setStrokeStyle(4, 0xFFD700);
+    dialogBg.setDepth(101);
+    
+    // 标题
+    const titleText = this.add.text(width / 2, height / 2 - 100, '欢迎来到数学冒险！', {
+      fontFamily: 'Microsoft YaHei',
+      fontSize: '28px',
+      color: '#FF69B4',
+      fontStyle: 'bold'
+    });
+    titleText.setOrigin(0.5);
+    titleText.setDepth(102);
+    
+    // 提示文本
+    const promptText = this.add.text(width / 2, height / 2 - 50, '请输入你的名字：', {
+      fontFamily: 'Microsoft YaHei',
+      fontSize: '22px',
+      color: '#333333'
+    });
+    promptText.setOrigin(0.5);
+    promptText.setDepth(102);
+    
+    // 创建HTML输入框
+    const inputElement = document.createElement('input');
+    inputElement.type = 'text';
+    inputElement.placeholder = '请输入名字（2-8个字）';
+    inputElement.maxLength = 8;
+    inputElement.style.position = 'absolute';
+    inputElement.style.left = '50%';
+    inputElement.style.top = '50%';
+    inputElement.style.transform = 'translate(-50%, -50%)';
+    inputElement.style.width = '300px';
+    inputElement.style.height = '40px';
+    inputElement.style.fontSize = '20px';
+    inputElement.style.textAlign = 'center';
+    inputElement.style.border = '2px solid #FFD700';
+    inputElement.style.borderRadius = '10px';
+    inputElement.style.outline = 'none';
+    inputElement.style.zIndex = '1000';
+    inputElement.value = DataManager.getInstance().playerData.playerName;
+    document.body.appendChild(inputElement);
+    inputElement.focus();
+    
+    // 确认按钮
+    const confirmBtn = ButtonFactory.createButton(this, {
+      x: width / 2,
+      y: height / 2 + 80,
+      width: 200,
+      height: 50,
+      text: '确认 ✓',
+      color: 0x27ae60,
+      fontSize: '24px',
+      callback: () => {
+        const name = inputElement.value.trim();
+        if (name.length < 2) {
+          alert('名字至少需要2个字哦！');
+          return;
+        }
+        
+        // 保存名字
+        DataManager.getInstance().playerData.playerName = name;
+        DataManager.getInstance().saveData();
+        
+        // 移除输入框和对话框
+        document.body.removeChild(inputElement);
+        overlay.destroy();
+        dialogBg.destroy();
+        titleText.destroy();
+        promptText.destroy();
+        confirmBtn.destroy();
+        
+        // 刷新玩家信息显示
+        this.scene.restart();
+      }
+    });
+    confirmBtn.setDepth(102);
+    
+    // 按回车键也可以确认
+    inputElement.addEventListener('keypress', (event) => {
+      if (event.key === 'Enter') {
+        confirmBtn.emit('pointerdown');
+      }
+    });
   }
 }

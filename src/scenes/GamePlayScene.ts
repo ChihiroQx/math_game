@@ -29,6 +29,8 @@ export default class GamePlayScene extends Phaser.Scene {
   private monstersPerWave: number = 3;
   private isAnswering: boolean = false;
   private gameEnded: boolean = false; // 防止重复结算
+  private maxMonsters: number = 5; // 最大怪物数量限制（根据关卡设置）
+  private totalMonstersDefeated: number = 0; // 已击败的怪物总数
   
   // UI元素
   private questionText!: Phaser.GameObjects.Text;
@@ -56,6 +58,7 @@ export default class GamePlayScene extends Phaser.Scene {
     // 重置游戏状态
     this.gameEnded = false;
     this.isAnswering = false;
+    this.isPaused = false;
     this.currentMonsterIndex = 0;
     this.activeMonsters = [];
     this.monsters = [];
@@ -230,10 +233,32 @@ export default class GamePlayScene extends Phaser.Scene {
   }
   
   /**
-   * 创建初始怪物池（创建50只备用，后续可动态生成）
+   * 创建初始怪物池（根据关卡动态生成，控制游戏时长约2分钟）
    */
   private createMonsters(): void {
-    const initialMonsters = 50; // 初始创建50只，足够用
+    // 根据关卡调整怪物数量，第一关5只，逐步增加
+    const world = this.gameManager.currentWorld;
+    const level = this.gameManager.currentLevel;
+    
+    // 计算最大怪物数量：每个世界的第1关都比较少，然后逐渐增加
+    if (level === 1) {
+      this.maxMonsters = 5;  // 第1关：5只
+    } else if (level === 2) {
+      this.maxMonsters = 8;  // 第2关：8只
+    } else if (level === 3) {
+      this.maxMonsters = 12; // 第3关：12只
+    } else if (level === 4) {
+      this.maxMonsters = 15; // 第4关：15只
+    } else {
+      this.maxMonsters = 18; // 第5关：18只
+    }
+    
+    // 每个世界增加一点难度
+    this.maxMonsters += (world - 1) * 2;
+    
+    // 初始只创建3只怪物，后续动态添加（但不超过maxMonsters）
+    const initialMonsters = Math.min(3, this.maxMonsters);
+    this.totalMonstersDefeated = 0;
     
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
@@ -258,12 +283,17 @@ export default class GamePlayScene extends Phaser.Scene {
   }
   
   /**
-   * 动态添加新怪物
+   * 动态添加新怪物（限制在最大数量内）
    */
   private addNewMonster(): void {
+    // 检查怪物池大小是否已达到最大数量
+    if (this.monsters.length >= this.maxMonsters) {
+      return;
+    }
+    
     // 随机选择怪物类型（1-8），让怪物外观多样化
-    const monsterType = Math.floor(Math.random() * 8) + 1; // 1, 2, 3, 4, 5, 6, 7, 8
-    const monsterId = `monster_${monsterType}`; // 转换为配置ID
+    const monsterType = Math.floor(Math.random() * 8) + 1;
+    const monsterId = `monster_${monsterType}`;
     
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
@@ -272,8 +302,8 @@ export default class GamePlayScene extends Phaser.Scene {
       this,
       width + 100,
       height * 0.55,
-      this.gameManager.currentLevel, // 传入关卡难度
-      monsterId // 使用配置ID
+      this.gameManager.currentLevel,
+      monsterId
     );
     
     monster.sprite.setVisible(false);
@@ -399,16 +429,34 @@ export default class GamePlayScene extends Phaser.Scene {
       this.activeMonsters.splice(index, 1);
     }
     
-    // 如果当前怪物很少，生成新一波
-    if (this.activeMonsters.length < 2) {
-      // 如果怪物池不足，动态添加新怪物
+    // 增加击败计数
+    this.totalMonstersDefeated++;
+    
+    // 检查是否所有怪物都被击败（胜利条件）
+    if (this.totalMonstersDefeated >= this.maxMonsters) {
+      this.gameEnded = true;
+      this.time.delayedCall(500, () => {
+        this.onGameOver(true);
+      });
+      return;
+    }
+    
+    // 如果还需要生成更多怪物，尝试补充
+    const needMoreMonsters = this.totalMonstersDefeated < this.maxMonsters;
+    const shouldSpawn = this.activeMonsters.length < 2 && needMoreMonsters;
+    
+    if (shouldSpawn) {
+      // 如果怪物池不足，动态添加新怪物（但不超过最大数量）
       if (this.currentMonsterIndex >= this.monsters.length) {
-        for (let i = 0; i < 5; i++) {
+        const remainingToSpawn = this.maxMonsters - this.totalMonstersDefeated;
+        const toAdd = Math.min(3, remainingToSpawn); // 一次最多添加3只
+        for (let i = 0; i < toAdd; i++) {
           this.addNewMonster();
         }
       }
       
-      this.time.delayedCall(1000, () => {
+      // 生成新一波
+      this.time.delayedCall(500, () => {
         if (this.currentMonsterIndex < this.monsters.length && !this.gameEnded) {
           this.spawnNextWave();
         }
@@ -492,13 +540,15 @@ export default class GamePlayScene extends Phaser.Scene {
    */
   private loadQuestion(): void {
     // 如果游戏已结束，不再加载题目
-    if (this.gameEnded) return;
+    if (this.gameEnded) {
+      return;
+    }
     
     const index = this.gameManager.currentQuestionIndex;
     this.currentQuestion = this.questionManager.getQuestion(index);
     
     if (!this.currentQuestion) {
-      console.error('题目加载失败');
+      console.error('题目加载失败，索引:', index);
       return;
     }
     
@@ -634,7 +684,9 @@ export default class GamePlayScene extends Phaser.Scene {
    * 选择答案
    */
   private onAnswerSelected(selectedAnswer: number): void {
-    if (!this.currentQuestion || !this.isAnswering) return;
+    if (!this.currentQuestion || !this.isAnswering) {
+      return;
+    }
     
     this.isAnswering = false;
     
@@ -657,7 +709,21 @@ export default class GamePlayScene extends Phaser.Scene {
     this.audioManager.playSFX('correct');
     
     // 计算伤害（根据难度和角色攻击力加成）
-    const baseDamage = 20 + this.gameManager.currentLevel * 10;
+    // 调整伤害计算，让低关卡更容易，高关卡更有挑战
+    const level = this.gameManager.currentLevel;
+    let baseDamage = 50; // 基础伤害提高到50
+    
+    // 根据关卡调整伤害（第1关最高，逐渐降低相对优势）
+    if (level === 1) {
+      baseDamage = 60; // 第1关伤害最高，确保能快速击杀
+    } else if (level === 2) {
+      baseDamage = 55;
+    } else if (level <= 4) {
+      baseDamage = 50;
+    } else {
+      baseDamage = 45; // 高关卡伤害略低，增加挑战
+    }
+    
     const damage = Math.floor(baseDamage * (this.princess.attackPower / 100));
     
     // 攻击最近的怪物
@@ -682,6 +748,10 @@ export default class GamePlayScene extends Phaser.Scene {
       
       // 使用实际计算的总时间延迟造成伤害（更精确）
       this.time.delayedCall(actualTotalTime, () => {
+        if (!nearestMonster.isAlive) {
+          console.log('怪物已死亡，跳过伤害');
+          return;
+        }
         nearestMonster.takeDamage(damage);
         
         if (!nearestMonster.isAlive) {
@@ -699,7 +769,7 @@ export default class GamePlayScene extends Phaser.Scene {
     
     // 快速切换到下一题（减少等待时间）
     this.time.delayedCall(600, () => {
-      if (!this.gameEnded) {
+      if (!this.gameEnded && !this.isPaused) {
         // 继续下一题（无限答题模式）
         this.loadQuestion();
       }
@@ -802,13 +872,11 @@ export default class GamePlayScene extends Phaser.Scene {
    * 更新波次显示（显示总数和击杀数）
    */
   private updateWaveText(): void {
-    // 计算已击败的怪物数（已生成的 - 还活着的）
+    // 使用击败计数器显示进度
     const aliveCount = this.activeMonsters.filter(m => m.isAlive).length;
-    const defeated = this.currentMonsterIndex - aliveCount;
-    const totalMonsters = this.monsters.length; // 怪物总数
     
-    // 显示：击杀数/总数 | 场上数量
-    this.waveText.setText(`👹 击杀: ${defeated}/${totalMonsters} | 场上: ${aliveCount}`);
+    // 显示：击杀数/最大数量 | 场上数量
+    this.waveText.setText(`👹 击杀: ${this.totalMonstersDefeated}/${this.maxMonsters} | 场上: ${aliveCount}`);
   }
   
   /**
@@ -841,16 +909,36 @@ export default class GamePlayScene extends Phaser.Scene {
     // 停止计时
     this.timerManager.stopTimer();
     
+    // 根据主角剩余血量计算星星
+    const healthPercentage = victory ? (this.princess.currentHealth / this.princess.maxHealth) * 100 : 0;
+    const stars = this.gameManager.calculateStars(healthPercentage);
+    const score = this.gameManager.currentScore;
+    
+    console.log(`游戏结束 - 胜利:${victory}, 血量:${this.princess.currentHealth}/${this.princess.maxHealth} (${healthPercentage.toFixed(1)}%), 星星:${stars}`);
+    
     // 保存数据
     if (victory) {
-      DataManager.getInstance().saveData();
+      const dataManager = DataManager.getInstance();
+      
+      // 保存关卡进度（会自动解锁下一关、更新总星数）
+      dataManager.saveLevelProgress(
+        this.gameManager.currentWorld,
+        this.gameManager.currentLevel,
+        stars,
+        score
+      );
+      
+      // 添加金币奖励（得分即金币）
+      dataManager.addCoins(score);
+      
+      console.log(`关卡完成！世界${this.gameManager.currentWorld}-${this.gameManager.currentLevel}，获得${stars}星，${score}金币`);
     }
     
     // 跳转到结算场景
     this.scene.start('GameOverScene', {
       victory,
-      score: this.gameManager.currentScore,
-      stars: victory ? this.gameManager.calculateStars() : 0,
+      score: score,
+      stars: stars,
       correct: this.gameManager.correctAnswers,
       total: this.gameManager.correctAnswers + this.gameManager.wrongAnswers
     });
@@ -903,6 +991,9 @@ export default class GamePlayScene extends Phaser.Scene {
     this.isPaused = true;
     this.pauseButton.setText('▶ 继续');
     
+    // 暂停场景物理（不暂停时间，避免影响 delayedCall）
+    this.physics.pause();
+    
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
     
@@ -926,10 +1017,10 @@ export default class GamePlayScene extends Phaser.Scene {
     });
     title.setOrigin(0.5);
     
-    // 继续按钮（使用ButtonFactory）
+    // 继续按钮（使用ButtonFactory）- 使用相对于容器中心的坐标
     const resumeBtn = ButtonFactory.createButton(this, {
-      x: width / 2,
-      y: height / 2 - 50,
+      x: 0,
+      y: -50,
       width: 220,
       height: 54,
       text: '继续游戏',
@@ -939,12 +1030,11 @@ export default class GamePlayScene extends Phaser.Scene {
         this.resumeGame();
       }
     });
-    resumeBtn.setDepth(2002);
     
-    // 重新开始按钮（使用ButtonFactory）
+    // 重新开始按钮（使用ButtonFactory）- 使用相对于容器中心的坐标
     const restartBtn = ButtonFactory.createButton(this, {
-      x: width / 2,
-      y: height / 2 + 30,
+      x: 0,
+      y: 30,
       width: 220,
       height: 54,
       text: '重新开始',
@@ -956,12 +1046,11 @@ export default class GamePlayScene extends Phaser.Scene {
         this.scene.restart();
       }
     });
-    restartBtn.setDepth(2002);
     
-    // 退出按钮（使用ButtonFactory）
+    // 退出按钮（使用ButtonFactory）- 使用相对于容器中心的坐标
     const exitBtn = ButtonFactory.createButton(this, {
-      x: width / 2,
-      y: height / 2 + 110,
+      x: 0,
+      y: 110,
       width: 220,
       height: 54,
       text: '退出关卡',
@@ -974,9 +1063,9 @@ export default class GamePlayScene extends Phaser.Scene {
         this.scene.start('WorldMapScene');
       }
     });
-    exitBtn.setDepth(2002);
     
-    this.pauseMenu.add([title]);
+    // 将所有元素添加到容器中
+    this.pauseMenu.add([title, resumeBtn, restartBtn, exitBtn]);
   }
   
   /**
@@ -986,12 +1075,17 @@ export default class GamePlayScene extends Phaser.Scene {
     this.isPaused = false;
     this.pauseButton.setText('⏸ 暂停');
     
+    // 恢复场景物理
+    this.physics.resume();
+    
     // 销毁暂停菜单
     if (this.pauseOverlay) {
       this.pauseOverlay.destroy();
+      this.pauseOverlay = null as any;
     }
     if (this.pauseMenu) {
-      this.pauseMenu.destroy();
+      this.pauseMenu.destroy(true); // 销毁容器及其所有子元素
+      this.pauseMenu = null as any;
     }
   }
 }
