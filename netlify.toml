@@ -1,0 +1,13 @@
+# Netlify 部署配置
+[build]
+  # 构建命令
+  command = "npm install && npm run build"
+  # 发布目录（构建输出文件夹）
+  publish = "dist"
+
+# 单页应用路由配置
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
