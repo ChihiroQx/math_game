@@ -1,8 +1,8 @@
 # 依赖
 node_modules/
 
-# 构建输出（不推送到 GitHub，由 Vercel 自动构建）
-dist/
+# 构建输出（已包含在仓库中，方便直接使用）
+# dist/  （已启用推送）
 
 # 编辑器
 .vscode/
