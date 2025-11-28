@@ -97,6 +97,14 @@ export class AccountManager {
       return { success: false, message: '网络不可用，无法注册账号' };
     }
 
+    // 验证密码必须是6位数字
+    if (!password || password.trim() === '') {
+      return { success: false, message: '密码不能为空' };
+    }
+    if (password.length !== 6 || !/^\d{6}$/.test(password)) {
+      return { success: false, message: '密码必须是6位数字' };
+    }
+
     try {
       // 检查用户名是否已存在
       const checkUrl = `${SUPABASE_CONFIG.url}/rest/v1/user_accounts?username=eq.${encodeURIComponent(username)}&select=id`;
@@ -112,8 +120,8 @@ export class AccountManager {
         }
       }
 
-      // 直接存储明文密码（如果密码为空，则存储空字符串）
-      const passwordToStore = password || '';
+      // 直接存储明文密码
+      const passwordToStore = password.trim();
 
       // 创建新账号（保存明文密码）
       const account: UserAccount = {
@@ -141,14 +149,21 @@ export class AccountManager {
       const userId = data[0]?.id;
 
       if (userId) {
-        // 创建初始游戏数据
-        await this.createInitialGameData(userId, playerName);
-        
         // 保存登录状态
         this.currentUserId = userId;
         this.currentUsername = username;
         localStorage.setItem('user_id', userId.toString());
         localStorage.setItem('username', username);
+        localStorage.setItem('player_name', playerName);
+        
+        // 清除旧的本地数据
+        localStorage.removeItem('MathAdventure_SaveData');
+        
+        // 创建初始游戏数据
+        await this.createInitialGameData(userId, playerName);
+        
+        // 从服务器加载游戏数据（确保使用新创建的数据）
+        await this.loadGameDataFromServer();
         
         return { success: true, message: '注册成功', userId };
       }
@@ -197,16 +212,23 @@ export class AccountManager {
 
       const user = data[0];
       
-      // 验证密码：如果数据库中的密码为空或null，则允许任何密码登录
-      // 如果数据库中有密码，则必须匹配
-      if (user.password_hash && user.password_hash.trim() !== '') {
-        // 数据库中有密码，需要验证
-        const inputPassword = password || '';
-        if (inputPassword !== user.password_hash) {
-          return { success: false, message: '用户名或密码错误' };
-        }
+      // 验证密码：必须输入6位数字密码，且必须匹配数据库中的密码
+      if (!password || password.trim() === '') {
+        return { success: false, message: '请输入密码' };
       }
-      // 如果数据库中没有密码（空字符串或null），则允许登录
+      if (password.length !== 6 || !/^\d{6}$/.test(password)) {
+        return { success: false, message: '密码必须是6位数字' };
+      }
+
+      // 如果数据库中的密码为空或null，不允许登录（旧账号需要重新设置密码）
+      if (!user.password_hash || user.password_hash.trim() === '') {
+        return { success: false, message: '该账号未设置密码，请联系管理员' };
+      }
+
+      // 验证密码是否匹配
+      if (password.trim() !== user.password_hash.trim()) {
+        return { success: false, message: '用户名或密码错误' };
+      }
 
       this.currentUserId = user.id;
       this.currentUsername = user.username;
@@ -338,6 +360,10 @@ export class AccountManager {
     }
 
     try {
+      // 清除旧的本地数据，确保使用服务器数据
+      const dataManager = DataManager.getInstance();
+      localStorage.removeItem('MathAdventure_SaveData');
+      
       const url = `${SUPABASE_CONFIG.url}/rest/v1/user_game_data?user_id=eq.${this.currentUserId}&select=*&limit=1`;
       const response = await NetworkUtils.fetchWithNetworkCheck(url, {
         method: 'GET',
@@ -351,16 +377,52 @@ export class AccountManager {
       const data = await response.json();
       if (!data || data.length === 0) {
         // 没有游戏数据，创建初始数据
-        await this.createInitialGameData(this.currentUserId, localStorage.getItem('player_name') || '玩家');
+        const playerName = localStorage.getItem('player_name') || '玩家';
+        await this.createInitialGameData(this.currentUserId, playerName);
+        // 等待一下确保数据已创建，然后重新查询
+        await new Promise(resolve => setTimeout(resolve, 500));
+        // 重新查询数据
+        const retryResponse = await NetworkUtils.fetchWithNetworkCheck(url, {
+          method: 'GET',
+          headers: getSupabaseHeaders()
+        });
+        if (retryResponse.ok) {
+          const retryData = await retryResponse.json();
+          if (retryData && retryData.length > 0) {
+            const gameData = retryData[0];
+            const playerName = localStorage.getItem('player_name') || '玩家';
+            dataManager.playerData = {
+              playerName: playerName,
+              coins: gameData.coins || 0,
+              totalStars: gameData.total_stars || 0,
+              levelProgress: gameData.level_progress ? JSON.parse(gameData.level_progress) : [],
+              ownedCharacters: gameData.owned_characters ? JSON.parse(gameData.owned_characters) : ['mage_307'],
+              currentCharacter: gameData.current_character || 'mage_307'
+            };
+            if (dataManager.playerData.levelProgress.length === 0) {
+              dataManager.playerData.levelProgress.push({
+                world: 1,
+                level: 1,
+                stars: 0,
+                highScore: 0,
+                isCompleted: false
+              });
+            }
+            dataManager.saveDataSync();
+            return true;
+          }
+        }
         return false;
       }
 
       const gameData = data[0];
-      const dataManager = DataManager.getInstance();
+      
+      // 获取玩家名字（优先从 localStorage，如果没有则从数据库）
+      const playerName = localStorage.getItem('player_name') || gameData.player_name || '玩家';
 
-      // 转换数据格式
+      // 转换数据格式并直接更新 DataManager
       dataManager.playerData = {
-        playerName: localStorage.getItem('player_name') || '玩家',
+        playerName: playerName,
         coins: gameData.coins || 0,
         totalStars: gameData.total_stars || 0,
         levelProgress: gameData.level_progress ? JSON.parse(gameData.level_progress) : [],
@@ -368,8 +430,19 @@ export class AccountManager {
         currentCharacter: gameData.current_character || 'mage_307'
       };
 
-      // 同时保存到本地（作为备份）
-      dataManager.saveData();
+      // 如果关卡进度为空，初始化第一关
+      if (dataManager.playerData.levelProgress.length === 0) {
+        dataManager.playerData.levelProgress.push({
+          world: 1,
+          level: 1,
+          stars: 0,
+          highScore: 0,
+          isCompleted: false
+        });
+      }
+
+      // 保存到本地（作为备份）
+      dataManager.saveDataSync();
 
       return true;
     } catch (error) {

@@ -65,9 +65,6 @@
         }
         
         #game-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
             width: 100%;
             height: 100%;
             /* 使用 CSS 变量存储动态高度 */
@@ -75,11 +72,16 @@
             /* 确保不被遮挡 */
             position: relative;
             z-index: 1;
+            /* 移除居中，让画布铺满容器 */
+            display: block;
+            overflow: hidden;
         }
         
         canvas {
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            /* 移除圆角和阴影，让画布完全铺满 */
+            display: block;
+            width: 100% !important;
+            height: 100% !important;
             /* 移动端优化 */
             touch-action: none; /* 禁用默认触摸行为 */
             -webkit-tap-highlight-color: transparent; /* 移除点击高亮 */

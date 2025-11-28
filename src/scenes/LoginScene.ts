@@ -280,8 +280,16 @@ export default class LoginScene extends Phaser.Scene {
     this.styleInputElement(usernameInput);
     
     const passwordInput = DOMUtils.createPositionedInput(inputX, inputY2, width, height, 300, 40);
-    passwordInput.type = 'password';
-    passwordInput.placeholder = '请输入密码（可选）';
+    passwordInput.type = 'tel'; // 使用 tel 类型以在移动端显示数字键盘
+    passwordInput.placeholder = '请输入6位数字密码';
+    passwordInput.maxLength = 6;
+    passwordInput.pattern = '[0-9]{6}';
+    passwordInput.inputMode = 'numeric';
+    // 只允许输入数字
+    passwordInput.addEventListener('input', (e) => {
+      const target = e.target as HTMLInputElement;
+      target.value = target.value.replace(/[^0-9]/g, '');
+    });
     this.styleInputElement(passwordInput);
     
     // 保存输入框引用
@@ -297,10 +305,20 @@ export default class LoginScene extends Phaser.Scene {
       color: 0x4CAF50,
       callback: async () => {
         const username = usernameInput.value.trim();
-        const password = passwordInput.value.trim(); // 密码可选
+        const password = passwordInput.value.trim();
 
         if (!username) {
           alert('请输入用户名');
+          return;
+        }
+
+        if (!password) {
+          alert('请输入密码');
+          return;
+        }
+
+        if (password.length !== 6 || !/^\d{6}$/.test(password)) {
+          alert('密码必须是6位数字');
           return;
         }
 
@@ -404,8 +422,16 @@ export default class LoginScene extends Phaser.Scene {
     this.styleInputElement(usernameInput);
     
     const passwordInput = DOMUtils.createPositionedInput(inputX, inputY2, width, height, 300, 40);
-    passwordInput.type = 'password';
-    passwordInput.placeholder = '请输入密码（可选）';
+    passwordInput.type = 'tel'; // 使用 tel 类型以在移动端显示数字键盘
+    passwordInput.placeholder = '请输入6位数字密码';
+    passwordInput.maxLength = 6;
+    passwordInput.pattern = '[0-9]{6}';
+    passwordInput.inputMode = 'numeric';
+    // 只允许输入数字
+    passwordInput.addEventListener('input', (e) => {
+      const target = e.target as HTMLInputElement;
+      target.value = target.value.replace(/[^0-9]/g, '');
+    });
     this.styleInputElement(passwordInput);
     
     const playerNameInput = DOMUtils.createPositionedInput(inputX, inputY3, width, height, 300, 40);
@@ -429,11 +455,21 @@ export default class LoginScene extends Phaser.Scene {
       color: 0x4CAF50,
       callback: async () => {
         const username = usernameInput.value.trim();
-        const password = passwordInput.value.trim(); // 密码可选
+        const password = passwordInput.value.trim();
         const playerName = playerNameInput.value.trim();
 
         if (!username || !playerName) {
           alert('请填写用户名和游戏名字');
+          return;
+        }
+
+        if (!password) {
+          alert('请输入密码');
+          return;
+        }
+
+        if (password.length !== 6 || !/^\d{6}$/.test(password)) {
+          alert('密码必须是6位数字');
           return;
         }
 

@@ -17,24 +17,34 @@ import LevelLeaderboardScene from './scenes/LevelLeaderboardScene';
 // 检测是否为移动设备
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
+// 获取屏幕尺寸（根据设备宽度做全屏适配）
+function getScreenSize() {
+  // 使用实际窗口尺寸，确保铺满屏幕
+  const width = window.innerWidth || document.documentElement.clientWidth || 1280;
+  const height = window.innerHeight || document.documentElement.clientHeight || 720;
+  
+  return {
+    width: Math.max(width, 800), // 最小宽度 800px
+    height: Math.max(height, 600) // 最小高度 600px
+  };
+}
+
+const screenSize = getScreenSize();
+
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
-  width: 1280,
-  height: 720,
+  width: screenSize.width,
+  height: screenSize.height,
   parent: 'game-container',
   backgroundColor: '#87CEEB',
   scale: {
-    mode: Phaser.Scale.FIT,
+    // 使用 RESIZE 模式，让画布自动适应容器大小，铺满整个屏幕
+    mode: Phaser.Scale.RESIZE,
     autoCenter: Phaser.Scale.CENTER_BOTH,
-    // 移动端优化
-    ...(isMobile && {
-      // 移动端保持 FIT 模式（保持宽高比，避免变形）
-      // 但允许动态调整以适应不同屏幕
-      mode: Phaser.Scale.FIT,
-      autoCenter: Phaser.Scale.CENTER_BOTH,
-      // 响应式调整间隔
-      resizeInterval: 100
-    })
+    // 响应式调整间隔
+    resizeInterval: 100,
+    // 全屏支持
+    fullscreenTarget: 'game-container'
   },
   physics: {
     default: 'arcade',
@@ -193,24 +203,39 @@ if (isMobile) {
     e.preventDefault();
   });
   
-  // 处理横竖屏切换（仅在横屏时刷新）
+  // 处理横竖屏切换（刷新游戏画布以适应新尺寸）
   window.addEventListener('orientationchange', () => {
     setTimeout(() => {
-      // 只在横屏时刷新游戏画布
-      const isPortrait = window.innerHeight > window.innerWidth;
       const gameInstance = (window as any).game;
-      if (!isPortrait && gameInstance && gameInstance.scale) {
-        gameInstance.scale.refresh();
+      if (gameInstance && gameInstance.scale) {
+        // 更新游戏尺寸以适应新的屏幕尺寸
+        const newWidth = window.innerWidth || document.documentElement.clientWidth || 1280;
+        const newHeight = window.innerHeight || document.documentElement.clientHeight || 720;
+        gameInstance.scale.resize(Math.max(newWidth, 800), Math.max(newHeight, 600));
       }
     }, 100);
   });
   
-  // 处理窗口大小变化（移动端浏览器工具栏显示/隐藏，仅在横屏时）
+  // 处理窗口大小变化（实时调整游戏尺寸以适应屏幕）
   window.addEventListener('resize', () => {
-    const isPortrait = window.innerHeight > window.innerWidth;
     const gameInstance = (window as any).game;
-    if (!isPortrait && gameInstance && gameInstance.scale) {
-      gameInstance.scale.refresh();
+    if (gameInstance && gameInstance.scale) {
+      // 更新游戏尺寸以适应新的屏幕尺寸
+      const newWidth = window.innerWidth || document.documentElement.clientWidth || 1280;
+      const newHeight = window.innerHeight || document.documentElement.clientHeight || 720;
+      gameInstance.scale.resize(Math.max(newWidth, 800), Math.max(newHeight, 600));
+    }
+  });
+}
+
+// 桌面端也支持窗口大小变化
+if (!isMobile) {
+  window.addEventListener('resize', () => {
+    const gameInstance = (window as any).game;
+    if (gameInstance && gameInstance.scale) {
+      const newWidth = window.innerWidth || document.documentElement.clientWidth || 1280;
+      const newHeight = window.innerHeight || document.documentElement.clientHeight || 720;
+      gameInstance.scale.resize(Math.max(newWidth, 800), Math.max(newHeight, 600));
     }
   });
 }
