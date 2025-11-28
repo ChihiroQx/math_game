@@ -328,6 +328,37 @@ export default class WorldMapScene extends Phaser.Scene {
       container.add(starText);
     }
     
+    // 如果关卡已通关，添加排行榜入口按钮（右上方）
+    const isCompleted = dataManager.isLevelCompleted(world, level);
+    if (isCompleted) {
+      const leaderboardBtn = this.add.text(35, -35, '📊', {
+        fontSize: '24px',
+        color: '#FFD700',
+        stroke: '#000000',
+        strokeThickness: 2
+      });
+      leaderboardBtn.setOrigin(0.5);
+      leaderboardBtn.setInteractive({ useHandCursor: true });
+      leaderboardBtn.setPadding(4, 4, 4, 4);
+      
+      // 悬停效果
+      leaderboardBtn.on('pointerover', () => {
+        leaderboardBtn.setScale(1.2);
+        leaderboardBtn.setTint(0xFFFFFF);
+      });
+      leaderboardBtn.on('pointerout', () => {
+        leaderboardBtn.setScale(1);
+        leaderboardBtn.clearTint();
+      });
+      
+      // 点击打开排行榜
+      leaderboardBtn.on('pointerdown', () => {
+        this.scene.start('LevelLeaderboardScene', { world, level });
+      });
+      
+      container.add(leaderboardBtn);
+    }
+    
     // 入场动画（延迟不同时间）
     const delay = (world - 1) * 400 + (level - 1) * 80;
     this.tweens.add({
@@ -416,8 +447,11 @@ export default class WorldMapScene extends Phaser.Scene {
    * 开始关卡
    */
   private startLevel(world: number, level: number): void {
+    const dataManager = DataManager.getInstance();
+    const isCompleted = dataManager.isLevelCompleted(world, level);
+    
     const gameManager = GameManager.getInstance();
-    gameManager.startGame(world, level);
+    gameManager.startGame(world, level, isCompleted); // 传入是否无限模式
     this.scene.start('GamePlayScene');
   }
 }

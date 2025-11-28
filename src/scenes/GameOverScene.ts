@@ -14,7 +14,17 @@ export default class GameOverScene extends Phaser.Scene {
     super({ key: 'GameOverScene' });
   }
   
-  async create(data: { victory: boolean; stars: number; score: number; correct: number; total: number }): Promise<void> {
+  async create(data: { 
+    victory: boolean; 
+    stars: number; 
+    score: number; 
+    correct: number; 
+    total: number;
+    isInfiniteMode?: boolean;
+    killCount?: number;
+    survivalTime?: number;
+    coinsEarned?: number;
+  }): Promise<void> {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
     
@@ -78,10 +88,20 @@ export default class GameOverScene extends Phaser.Scene {
     // 添加星星装饰
     this.createStarDecorations();
     
-    // 标题（根据胜负显示不同文字和颜色）
-    const titleText = data.victory ? '关卡完成！' : '关卡失败！';
-    const titleColor = data.victory ? '#FFD700' : '#FF6347';
-    const strokeColor = data.victory ? '#FF69B4' : '#8B0000';
+    // 标题（根据胜负和模式显示不同文字和颜色）
+    let titleText: string;
+    let titleColor: string;
+    let strokeColor: string;
+    
+    if (data.isInfiniteMode) {
+      titleText = '提前结算';
+      titleColor = '#FFD700';
+      strokeColor = '#FF69B4';
+    } else {
+      titleText = data.victory ? '关卡完成！' : '关卡失败！';
+      titleColor = data.victory ? '#FFD700' : '#FF6347';
+      strokeColor = data.victory ? '#FF69B4' : '#8B0000';
+    }
     
     // 标题背景装饰
     const titleBg = this.add.graphics();
@@ -119,37 +139,69 @@ export default class GameOverScene extends Phaser.Scene {
       this.createStars(width / 2, height * 0.32, data.stars);
     }
     
-    // 得分
-    const scoreY = data.victory ? height * 0.48 : height * 0.35;
-    const scoreText = this.add.text(width / 2, scoreY, `得分: ${data.score}`, {
-      fontFamily: getBodyFont(),
-      fontSize: '36px',
-      color: '#ffffff'
-    });
-    scoreText.setOrigin(0.5);
-    
-    // 正确率（修复NaN问题）
-    const accuracy = data.total > 0 ? (data.correct / data.total * 100).toFixed(1) : '0.0';
-    const accuracyText = this.add.text(
-      width / 2,
-      scoreY + 60,
-      `正确率: ${accuracy}% (${data.correct}/${data.total})`,
-      {
+    // 无限模式结算显示
+    if (data.isInfiniteMode) {
+      const infoY = height * 0.35;
+      
+      // 击杀数
+      const killText = this.add.text(width / 2, infoY, `🎯 击杀怪物: ${data.killCount || 0} 只`, {
         fontFamily: getBodyFont(),
-        fontSize: '28px',
+        fontSize: '36px',
+        color: '#FFD700',
+        stroke: '#000000',
+        strokeThickness: 4
+      });
+      killText.setOrigin(0.5);
+      
+      // 存活时间
+      const minutes = Math.floor((data.survivalTime || 0) / 60);
+      const seconds = Math.floor((data.survivalTime || 0) % 60);
+      const timeText = `⏱️ 存活时间: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+      const survivalText = this.add.text(width / 2, infoY + 60, timeText, {
+        fontFamily: getBodyFont(),
+        fontSize: '32px',
+        color: '#4ECDC4',
+        stroke: '#000000',
+        strokeThickness: 4
+      });
+      survivalText.setOrigin(0.5);
+      
+      // 获得金币（已在击杀时获得，这里只显示）
+      const coinsText = this.add.text(width / 2, infoY + 120, `💰 获得金币: ${data.coinsEarned || 0}`, {
+        fontFamily: getBodyFont(),
+        fontSize: '32px',
+        color: '#FFD700',
+        stroke: '#000000',
+        strokeThickness: 4
+      });
+      coinsText.setOrigin(0.5);
+    } else {
+      // 普通模式结算显示
+      const scoreY = data.victory ? height * 0.48 : height * 0.35;
+      const scoreText = this.add.text(width / 2, scoreY, `得分: ${data.score}`, {
+        fontFamily: getBodyFont(),
+        fontSize: '36px',
         color: '#ffffff'
-      }
-    );
-    accuracyText.setOrigin(0.5);
-    
-    // 金币奖励
-    const coinsText = this.add.text(width / 2, scoreY + 120, `💰 +${data.score} 金币`, {
-      fontFamily: getBodyFont(),
-      fontSize: '32px',
-      color: '#FFD700'
-    });
-    coinsText.setOrigin(0.5);
-    coinsText.setPadding(4, 4, 4, 4);
+      });
+      scoreText.setOrigin(0.5);
+      
+      // 正确率（修复NaN问题）
+      const accuracy = data.total > 0 ? (data.correct / data.total * 100).toFixed(1) : '0.0';
+      const accuracyText = this.add.text(
+        width / 2,
+        scoreY + 60,
+        `正确率: ${accuracy}% (${data.correct}/${data.total})`,
+        {
+          fontFamily: getBodyFont(),
+          fontSize: '28px',
+          color: '#ffffff'
+        }
+      );
+      accuracyText.setOrigin(0.5);
+      
+      // 金币奖励（普通模式不再显示，因为金币已在击杀时获得）
+      // 注：普通模式的金币在击杀怪物时已获得，无需额外显示
+    }
     
     // 按钮
     this.createButtons(width, height, data.victory);

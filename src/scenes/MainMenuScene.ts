@@ -3,6 +3,8 @@ import DataManager from '../managers/DataManager';
 import AudioManager from '../managers/AudioManager';
 import ButtonFactory from '../utils/ButtonFactory';
 import DOMUtils from '../utils/DOMUtils';
+import { LeaderboardManager } from '../managers/LeaderboardManager';
+import NetworkUtils from '../utils/NetworkUtils';
 import { getTitleFont, getBodyFont } from '../config/FontConfig';
 
 /**
@@ -30,6 +32,9 @@ export default class MainMenuScene extends Phaser.Scene {
     
     // 玩家信息
     this.createPlayerInfo(width, height);
+    
+    // 总玩家数量（异步加载）
+    this.createTotalPlayerCount(width);
     
     // 菜单按钮
     this.createMenuButtons(width, height);
@@ -252,6 +257,60 @@ export default class MainMenuScene extends Phaser.Scene {
   }
   
   /**
+   * 创建总玩家数量显示（右上角）
+   */
+  private async createTotalPlayerCount(width: number): Promise<void> {
+    // 如果未配置 Supabase，不显示
+    if (!LeaderboardManager.isConfigured()) {
+      return;
+    }
+    
+    // 右侧总玩家数量卡片（放在星星卡片下方）
+    const playerCountCardBg = this.add.graphics();
+    playerCountCardBg.fillStyle(0x9B59B6, 0.3); // 紫色背景
+    playerCountCardBg.fillRoundedRect(width - 180, 150, 160, 50, 25);
+    
+    // 先显示加载中
+    const playerCountText = this.add.text(width - 90, 175, `👥 加载中...`, {
+      fontFamily: getBodyFont(),
+      fontSize: '22px',
+      color: '#FFFFFF',
+      stroke: '#000000',
+      strokeThickness: 4,
+      shadow: {
+        offsetX: 2,
+        offsetY: 2,
+        color: '#000000',
+        blur: 4,
+        fill: true
+      }
+    });
+    playerCountText.setOrigin(0.5);
+    
+    // 异步获取总玩家数量
+    try {
+      if (!NetworkUtils.isOnline()) {
+        playerCountText.setText(`👥 离线`);
+        return;
+      }
+      
+      const leaderboardManager = LeaderboardManager.getInstance();
+      const totalCount = await leaderboardManager.getTotalPlayerCount();
+      
+      // 更新显示
+      if (totalCount > 0) {
+        playerCountText.setText(`👥 ${totalCount} 玩家`);
+        console.log(`✅ 总玩家数量: ${totalCount}`);
+      } else {
+        playerCountText.setText(`👥 --`);
+      }
+    } catch (error) {
+      NetworkUtils.logNetworkError('获取总玩家数量', error);
+      playerCountText.setText(`👥 --`);
+    }
+  }
+  
+  /**
    * 创建菜单按钮（使用统一的ButtonFactory）
    */
   private createMenuButtons(width: number, height: number): void {
@@ -454,7 +513,7 @@ export default class MainMenuScene extends Phaser.Scene {
       text: '确认 ✓',
       color: 0x27ae60,
       fontSize: '24px',
-      callback: () => {
+      callback: async () => {
         // 防止重复点击
         if (isProcessing) {
           return;
@@ -466,6 +525,36 @@ export default class MainMenuScene extends Phaser.Scene {
           alert('名字至少需要2个字哦！');
           isProcessing = false;
           return;
+        }
+        
+        // 检查名字是否已存在（如果配置了 Supabase）
+        if (LeaderboardManager.isConfigured()) {
+          // 检查网络状态
+          if (!NetworkUtils.isOnline()) {
+            alert('网络不可用，无法验证名字。游戏将使用本地模式。');
+            // 网络不可用时，允许使用名字，但不注册到服务器
+          } else {
+            try {
+              const leaderboardManager = LeaderboardManager.getInstance();
+              const exists = await leaderboardManager.checkPlayerNameExists(name);
+              if (exists) {
+                alert('这个名字已经被使用了，请换一个名字吧！');
+                isProcessing = false;
+                return;
+              }
+              
+              // 注册新名字
+              const registered = await leaderboardManager.registerPlayerName(name);
+              if (!registered) {
+                alert('名字注册失败，可能是网络问题。游戏将使用本地模式。');
+                // 网络错误时允许继续，但不注册到服务器
+              }
+            } catch (error) {
+              const errorMsg = NetworkUtils.getNetworkErrorMessage(error);
+              alert(`网络错误：${errorMsg}\n游戏将使用本地模式。`);
+              // 网络错误时允许继续
+            }
+          }
         }
         
         // 保存名字
@@ -516,7 +605,7 @@ export default class MainMenuScene extends Phaser.Scene {
     
     // 移动端额外处理：直接绑定 pointerup 事件确保触发
     confirmBtn.setInteractive({ useHandCursor: true });
-    confirmBtn.on('pointerup', () => {
+    confirmBtn.on('pointerup', async () => {
       if (!isProcessing) {
         // 直接调用 callback，不依赖动画完成
         const name = inputElement.value.trim();
@@ -526,6 +615,36 @@ export default class MainMenuScene extends Phaser.Scene {
         }
         
         isProcessing = true;
+        
+        // 检查名字是否已存在（如果配置了 Supabase）
+        if (LeaderboardManager.isConfigured()) {
+          // 检查网络状态
+          if (!NetworkUtils.isOnline()) {
+            alert('网络不可用，无法验证名字。游戏将使用本地模式。');
+            // 网络不可用时，允许使用名字，但不注册到服务器
+          } else {
+            try {
+              const leaderboardManager = LeaderboardManager.getInstance();
+              const exists = await leaderboardManager.checkPlayerNameExists(name);
+              if (exists) {
+                alert('这个名字已经被使用了，请换一个名字吧！');
+                isProcessing = false;
+                return;
+              }
+              
+              // 注册新名字
+              const registered = await leaderboardManager.registerPlayerName(name);
+              if (!registered) {
+                alert('名字注册失败，可能是网络问题。游戏将使用本地模式。');
+                // 网络错误时允许继续，但不注册到服务器
+              }
+            } catch (error) {
+              const errorMsg = NetworkUtils.getNetworkErrorMessage(error);
+              alert(`网络错误：${errorMsg}\n游戏将使用本地模式。`);
+              // 网络错误时允许继续
+            }
+          }
+        }
         
         // 保存名字
         const dataManager = DataManager.getInstance();

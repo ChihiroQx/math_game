@@ -9,7 +9,7 @@ import { Monster } from '../entities/Monster';
 import { Princess } from '../entities/Princess';
 import ButtonFactory from '../utils/ButtonFactory';
 import { getTitleFont, getBodyFont, getNumberFont } from '../config/FontConfig';
-import { getSpecialQuestionProbability, getSpecialQuestionCountdown } from '../config/GameConfig';
+import { getSpecialQuestionProbability, getSpecialQuestionCountdown, getInfiniteModeSpecialQuestionProbability } from '../config/GameConfig';
 
 /**
  * 游戏玩法场景 - 战斗版本（使用ButtonFactory）
@@ -295,6 +295,11 @@ export default class GamePlayScene extends Phaser.Scene {
     // 每个世界增加一点难度
     this.maxMonsters += (world - 1) * 2;
     
+    // 无限模式下不设置怪物上限
+    if (this.gameManager.isInfiniteMode) {
+      this.maxMonsters = Infinity;
+    }
+    
     // 初始只创建3只怪物，后续动态添加（但不超过maxMonsters）
     const initialMonsters = Math.min(3, this.maxMonsters);
     this.totalMonstersDefeated = 0;
@@ -429,7 +434,9 @@ export default class GamePlayScene extends Phaser.Scene {
     this.updateWaveText();
     
     // 刷怪后安排下一波（如果还没有安排）
-    if (!this.nextWaveTimer && this.totalMonstersDefeated < this.maxMonsters) {
+    // 无限模式下总是可以安排下一波
+    const canSchedule = this.gameManager.isInfiniteMode || this.totalMonstersDefeated < this.maxMonsters;
+    if (!this.nextWaveTimer && canSchedule) {
       this.scheduleNextWave();
     }
   }
@@ -444,8 +451,13 @@ export default class GamePlayScene extends Phaser.Scene {
       this.nextWaveTimer = null;
     }
     
-    // 如果游戏已结束或已达到最大怪物数，不再安排
-    if (this.gameEnded || this.totalMonstersDefeated >= this.maxMonsters) {
+    // 如果游戏已结束，不再安排
+    if (this.gameEnded) {
+      return;
+    }
+    
+    // 检查是否达到最大怪物数（无限模式下总是可以继续）
+    if (!this.gameManager.isInfiniteMode && this.totalMonstersDefeated >= this.maxMonsters) {
       return;
     }
     
@@ -454,7 +466,14 @@ export default class GamePlayScene extends Phaser.Scene {
     
     // 创建定时器
     this.nextWaveTimer = this.time.delayedCall(actualInterval, () => {
-      if (!this.gameEnded && this.totalMonstersDefeated < this.maxMonsters) {
+      if (this.gameEnded) {
+        return;
+      }
+      
+      // 无限模式下总是可以刷怪，普通模式需要检查是否还有剩余
+      const canSpawn = this.gameManager.isInfiniteMode || this.totalMonstersDefeated < this.maxMonsters;
+      
+      if (canSpawn) {
         // 检查场上是否还有怪物，如果有则正常刷怪，如果没有则说明已经被提前刷了
         const aliveMonsters = this.activeMonsters.filter(m => m.isAlive);
         if (aliveMonsters.length > 0) {
@@ -474,8 +493,13 @@ export default class GamePlayScene extends Phaser.Scene {
    * 提前刷下一波怪物（当场上怪物全部被击败时）
    */
   private spawnNextWaveEarly(): void {
-    // 如果游戏已结束或已达到最大怪物数，不再刷怪
-    if (this.gameEnded || this.totalMonstersDefeated >= this.maxMonsters) {
+    // 如果游戏已结束，不再刷怪
+    if (this.gameEnded) {
+      return;
+    }
+    
+    // 检查是否达到最大怪物数（无限模式下总是可以继续）
+    if (!this.gameManager.isInfiniteMode && this.totalMonstersDefeated >= this.maxMonsters) {
       return;
     }
     
@@ -578,27 +602,44 @@ export default class GamePlayScene extends Phaser.Scene {
     // 增加击败计数
     this.totalMonstersDefeated++;
     
-    // 检查是否所有怪物都被击败（胜利条件）
-    if (this.totalMonstersDefeated >= this.maxMonsters) {
-      this.gameEnded = true;
-      this.time.delayedCall(500, () => {
-        this.onGameOver(true);
-      });
-      return;
+    // 击杀怪物获得金币（每个怪物1金币）
+    const dataManager = DataManager.getInstance();
+    dataManager.addCoins(1);
+    console.log(`击杀怪物，获得1金币，当前金币：${dataManager.playerData.coins}`);
+    
+    // 无限模式下不检查胜利条件，一直出怪直到死亡
+    if (!this.gameManager.isInfiniteMode) {
+      // 检查是否所有怪物都被击败（胜利条件）
+      if (this.totalMonstersDefeated >= this.maxMonsters) {
+        this.gameEnded = true;
+        this.time.delayedCall(500, () => {
+          this.onGameOver(true);
+        });
+        return;
+      }
     }
     
     // 检查场上是否还有怪物
     const aliveMonsters = this.activeMonsters.filter(m => m.isAlive);
     
     // 如果场上怪物全部被击败，提前刷下一波
-    if (aliveMonsters.length === 0 && this.totalMonstersDefeated < this.maxMonsters) {
-      this.spawnNextWaveEarly();
+    // 无限模式下，maxMonsters 是 Infinity，所以总是满足条件
+    if (aliveMonsters.length === 0) {
+      if (this.gameManager.isInfiniteMode) {
+        // 无限模式：总是可以刷下一波
+        this.spawnNextWaveEarly();
+      } else if (this.totalMonstersDefeated < this.maxMonsters) {
+        // 普通模式：检查是否还有剩余怪物
+        this.spawnNextWaveEarly();
+      }
     }
     
     // 如果还需要生成更多怪物，尝试补充怪物池
-    const needMoreMonsters = this.totalMonstersDefeated < this.maxMonsters;
+    // 无限模式下，总是需要更多怪物
+    const needMoreMonsters = this.gameManager.isInfiniteMode || this.totalMonstersDefeated < this.maxMonsters;
     if (needMoreMonsters && this.currentMonsterIndex >= this.monsters.length) {
-      const remainingToSpawn = this.maxMonsters - this.totalMonstersDefeated;
+      // 无限模式下，每次补充3只怪物
+      const remainingToSpawn = this.gameManager.isInfiniteMode ? 3 : (this.maxMonsters - this.totalMonstersDefeated);
       const toAdd = Math.min(3, remainingToSpawn); // 一次最多添加3只
       for (let i = 0; i < toAdd; i++) {
         // 异步添加怪物（不等待，避免阻塞）
@@ -701,7 +742,12 @@ export default class GamePlayScene extends Phaser.Scene {
     }
     
     // 根据配置的概率生成特殊题（更高难度或混合运算）
-    if (Math.random() < getSpecialQuestionProbability()) {
+    // 无限模式下特殊题概率提高
+    const specialProb = this.gameManager.isInfiniteMode 
+      ? getInfiniteModeSpecialQuestionProbability() 
+      : getSpecialQuestionProbability();
+    
+    if (Math.random() < specialProb) {
       // 获取当前关卡的题型和难度
       const currentWorld = this.gameManager.currentWorld;
       const currentLevel = this.gameManager.currentLevel;
@@ -1315,7 +1361,7 @@ export default class GamePlayScene extends Phaser.Scene {
   /**
    * 游戏结束
    */
-  private onGameOver(victory: boolean): void {
+  private async onGameOver(victory: boolean): Promise<void> {
     // 停止计时
     this.timerManager.stopTimer();
     
@@ -1344,10 +1390,38 @@ export default class GamePlayScene extends Phaser.Scene {
         score
       );
       
-      // 添加金币奖励（得分即金币）
-      dataManager.addCoins(score);
+      // 金币已在击杀怪物时获得，这里不再重复添加
+      // 注：普通模式的金币在击杀怪物时已获得，无需额外奖励
       
       console.log(`关卡完成！世界${this.gameManager.currentWorld}-${this.gameManager.currentLevel}，获得${stars}星，${score}金币`);
+    } else if (!victory && this.gameManager.isInfiniteMode) {
+      // 无限模式：保存记录到远端数据库（只有死亡时才保存）
+      const dataManager = DataManager.getInstance();
+      const survivalTime = this.timerManager.getElapsedTime(); // 获取存活时间（秒）
+      
+      console.log(`无限模式结束！击杀${this.totalMonstersDefeated}只怪物，存活${survivalTime}秒`);
+      
+      // 提交到远端数据库
+      const { LeaderboardManager } = await import('../managers/LeaderboardManager');
+      if (LeaderboardManager.isConfigured()) {
+        const leaderboardManager = LeaderboardManager.getInstance();
+        await leaderboardManager.submitInfiniteModeRecord(
+          this.gameManager.currentWorld,
+          this.gameManager.currentLevel,
+          dataManager.playerData.playerName || '勇敢的小朋友',
+          this.totalMonstersDefeated,
+          survivalTime
+        );
+      } else {
+        // 如果未配置 Supabase，降级到本地存储
+        console.warn('⚠️ Supabase 未配置，使用本地存储');
+        dataManager.saveInfiniteModeRecord(
+          this.gameManager.currentWorld,
+          this.gameManager.currentLevel,
+          this.totalMonstersDefeated,
+          survivalTime
+        );
+      }
     }
     
     // 跳转到结算场景
@@ -1464,24 +1538,99 @@ export default class GamePlayScene extends Phaser.Scene {
     });
     
     // 退出按钮（使用ButtonFactory）- 使用相对于容器中心的坐标
+    // 无限模式下显示"提前结算"，普通模式显示"退出关卡"
+    const exitBtnText = this.gameManager.isInfiniteMode ? '提前结算' : '退出关卡';
     const exitBtn = ButtonFactory.createButton(this, {
       x: 0,
       y: 110,
       width: 220,
       height: 54,
-      text: '退出关卡',
-      icon: '🚪',
+      text: exitBtnText,
+      icon: this.gameManager.isInfiniteMode ? '💰' : '🚪',
       color: 0xe74c3c,
-      callback: () => {
+      callback: async () => {
         this.audioManager.playSFX('click');
         this.isPaused = false;
-        this.timerManager.stopTimer();
-        this.scene.start('WorldMapScene');
+        
+        if (this.gameManager.isInfiniteMode) {
+          // 无限模式：提前结算并上传数据
+          await this.earlySettleInfiniteMode();
+        } else {
+          // 普通模式：直接退出
+          this.timerManager.stopTimer();
+          this.scene.start('WorldMapScene');
+        }
       }
     });
     
     // 将所有元素添加到容器中
     this.pauseMenu.add([title, resumeBtn, restartBtn, exitBtn]);
+  }
+  
+  /**
+   * 无限模式提前结算
+   */
+  private async earlySettleInfiniteMode(): Promise<void> {
+    // 停止计时
+    this.timerManager.stopTimer();
+    
+    // 标记游戏结束
+    this.gameEnded = true;
+    
+    // 获取当前数据
+    const dataManager = DataManager.getInstance();
+    const survivalTime = this.timerManager.getElapsedTime();
+    const killCount = this.totalMonstersDefeated;
+    const coinsEarned = killCount; // 金币数等于击杀数（每个怪物1金币）
+    
+    console.log(`无限模式提前结算！击杀${killCount}只怪物，存活${survivalTime}秒，获得${coinsEarned}金币`);
+    
+    // 上传数据到排行榜
+    const { LeaderboardManager } = await import('../managers/LeaderboardManager');
+    if (LeaderboardManager.isConfigured()) {
+      const leaderboardManager = LeaderboardManager.getInstance();
+      await leaderboardManager.submitInfiniteModeRecord(
+        this.gameManager.currentWorld,
+        this.gameManager.currentLevel,
+        dataManager.playerData.playerName || '勇敢的小朋友',
+        killCount,
+        survivalTime
+      ).catch(error => {
+        console.error('❌ 提交无限模式记录失败:', error);
+      });
+    } else {
+      // 如果未配置 Supabase，降级到本地存储
+      console.warn('⚠️ Supabase 未配置，使用本地存储');
+      dataManager.saveInfiniteModeRecord(
+        this.gameManager.currentWorld,
+        this.gameManager.currentLevel,
+        killCount,
+        survivalTime
+      );
+    }
+    
+    // 销毁暂停菜单
+    if (this.pauseOverlay) {
+      this.pauseOverlay.destroy();
+      this.pauseOverlay = null as any;
+    }
+    if (this.pauseMenu) {
+      this.pauseMenu.destroy(true);
+      this.pauseMenu = null as any;
+    }
+    
+    // 跳转到结算场景（victory=false，因为是提前退出）
+    this.scene.start('GameOverScene', {
+      victory: false,
+      score: this.gameManager.currentScore,
+      stars: 0, // 提前退出没有星星
+      correct: this.gameManager.correctAnswers,
+      total: this.gameManager.correctAnswers + this.gameManager.wrongAnswers,
+      isInfiniteMode: true,
+      killCount: killCount,
+      survivalTime: survivalTime,
+      coinsEarned: coinsEarned
+    });
   }
   
   /**

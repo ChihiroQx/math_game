@@ -39,3 +39,28 @@ export function getSpecialQuestionTypeProbability(): number {
   return SPECIAL_QUESTION_CONFIG.higherDifficultyProbability;
 }
 
+/**
+ * 无限模式配置
+ */
+export const INFINITE_MODE_CONFIG = {
+  // 无限模式下特殊题出现概率（0.0 - 1.0）
+  specialQuestionProbability: 0.4, // 40%（比普通模式高）
+  
+  // 无限模式是否启用
+  enabled: true
+};
+
+/**
+ * 获取无限模式下特殊题出现概率
+ */
+export function getInfiniteModeSpecialQuestionProbability(): number {
+  return INFINITE_MODE_CONFIG.specialQuestionProbability;
+}
+
+/**
+ * 检查无限模式是否启用
+ */
+export function isInfiniteModeEnabled(): boolean {
+  return INFINITE_MODE_CONFIG.enabled;
+}
+

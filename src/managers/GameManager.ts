@@ -8,6 +8,7 @@ export default class GameManager {
   // 游戏状态
   public isPlaying: boolean = false;
   public isPaused: boolean = false;
+  public isInfiniteMode: boolean = false; // 是否为无限模式
   
   // 当前关卡信息
   public currentWorld: number = 1;
@@ -36,9 +37,10 @@ export default class GameManager {
   /**
    * 开始游戏
    */
-  public startGame(world: number, level: number): void {
+  public startGame(world: number, level: number, isInfiniteMode: boolean = false): void {
     this.currentWorld = world;
     this.currentLevel = level;
+    this.isInfiniteMode = isInfiniteMode;
     this.resetGameStats();
     this.isPlaying = true;
   }

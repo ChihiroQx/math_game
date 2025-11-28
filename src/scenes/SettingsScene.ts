@@ -4,6 +4,8 @@ import TimerManager from '../managers/TimerManager';
 import DataManager from '../managers/DataManager';
 import ButtonFactory from '../utils/ButtonFactory';
 import DOMUtils from '../utils/DOMUtils';
+import { LeaderboardManager } from '../managers/LeaderboardManager';
+import NetworkUtils from '../utils/NetworkUtils';
 import { getTitleFont, getBodyFont, getNumberFont } from '../config/FontConfig';
 
 /**
@@ -416,11 +418,45 @@ export default class SettingsScene extends Phaser.Scene {
       text: '确认 ✓',
       color: 0x27ae60,
       fontSize: '24px',
-      callback: () => {
+      callback: async () => {
         const name = inputElement.value.trim();
         if (name.length < 2) {
           alert('名字至少需要2个字哦！');
           return;
+        }
+        
+        // 检查名字是否已存在（如果配置了 Supabase）
+        if (LeaderboardManager.isConfigured()) {
+          // 检查网络状态
+          if (!NetworkUtils.isOnline()) {
+            alert('网络不可用，无法验证名字。游戏将使用本地模式。');
+            // 网络不可用时，允许使用名字，但不注册到服务器
+          } else {
+            const leaderboardManager = LeaderboardManager.getInstance();
+            const currentName = DataManager.getInstance().playerData.playerName;
+            
+            // 如果名字改变了，需要检查
+            if (name !== currentName) {
+              try {
+                const exists = await leaderboardManager.checkPlayerNameExists(name);
+                if (exists) {
+                  alert('这个名字已经被使用了，请换一个名字吧！');
+                  return;
+                }
+                
+                // 注册新名字
+                const registered = await leaderboardManager.registerPlayerName(name);
+                if (!registered) {
+                  alert('名字注册失败，可能是网络问题。游戏将使用本地模式。');
+                  // 网络错误时允许继续，但不注册到服务器
+                }
+              } catch (error) {
+                const errorMsg = NetworkUtils.getNetworkErrorMessage(error);
+                alert(`网络错误：${errorMsg}\n游戏将使用本地模式。`);
+                // 网络错误时允许继续
+              }
+            }
+          }
         }
         
         // 保存名字

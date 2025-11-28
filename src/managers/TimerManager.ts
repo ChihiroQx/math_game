@@ -68,6 +68,13 @@ export default class TimerManager {
   }
   
   /**
+   * 获取已用时间（秒）
+   */
+  public getElapsedTime(): number {
+    return Math.floor(this.currentPlayTime);
+  }
+  
+  /**
    * 更新计时器（每帧调用）
    */
   public update(deltaTime: number): void {

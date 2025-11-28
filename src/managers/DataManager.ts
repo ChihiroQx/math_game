@@ -8,6 +8,7 @@ export interface PlayerData {
   levelProgress: LevelProgress[];
   ownedCharacters: string[];            // 拥有的角色ID列表
   currentCharacter: string;             // 当前使用的角色ID
+  infiniteModeRecords?: InfiniteModeRecord[]; // 无限模式记录（可选，兼容旧数据）
 }
 
 /**
@@ -19,6 +20,30 @@ export interface LevelProgress {
   stars: number;
   highScore: number;
   isCompleted: boolean;
+}
+
+/**
+ * 无限模式记录接口
+ */
+export interface InfiniteModeRecord {
+  world: number;
+  level: number;
+  playerName: string;
+  killCount: number;        // 击杀怪物数
+  survivalTime: number;     // 存活时间（秒）
+  timestamp: number;         // 记录时间戳
+}
+
+/**
+ * 无限模式记录接口
+ */
+export interface InfiniteModeRecord {
+  world: number;
+  level: number;
+  playerName: string;
+  killCount: number;        // 击杀怪物数
+  survivalTime: number;     // 存活时间（秒）
+  timestamp: number;         // 记录时间戳
 }
 
 /**
@@ -296,5 +321,76 @@ export default class DataManager {
       this.saveData();
     }
     return this.playerData.currentCharacter;
+  }
+  
+  /**
+   * 保存无限模式记录
+   */
+  public saveInfiniteModeRecord(world: number, level: number, killCount: number, survivalTime: number): void {
+    // 兼容旧数据
+    if (!this.playerData.infiniteModeRecords) {
+      this.playerData.infiniteModeRecords = [];
+    }
+    
+    const record: InfiniteModeRecord = {
+      world,
+      level,
+      playerName: this.playerData.playerName || '勇敢的小朋友',
+      killCount,
+      survivalTime,
+      timestamp: Date.now()
+    };
+    
+    // 添加到记录列表
+    this.playerData.infiniteModeRecords.push(record);
+    
+    // 只保留每个关卡的前100条记录（避免数据过大）
+    const levelRecords = this.playerData.infiniteModeRecords.filter(
+      r => r.world === world && r.level === level
+    );
+    if (levelRecords.length > 100) {
+      // 按击杀数降序排序，保留前100条
+      levelRecords.sort((a, b) => b.killCount - a.killCount);
+      const toKeep = levelRecords.slice(0, 100);
+      
+      // 移除该关卡的所有记录，然后添加保留的记录
+      this.playerData.infiniteModeRecords = this.playerData.infiniteModeRecords.filter(
+        r => !(r.world === world && r.level === level)
+      );
+      this.playerData.infiniteModeRecords.push(...toKeep);
+    }
+    
+    this.saveData();
+  }
+  
+  /**
+   * 获取指定关卡的无限模式排行榜
+   */
+  public getInfiniteModeLeaderboard(world: number, level: number): InfiniteModeRecord[] {
+    // 兼容旧数据
+    if (!this.playerData.infiniteModeRecords) {
+      return [];
+    }
+    
+    return this.playerData.infiniteModeRecords
+      .filter(r => r.world === world && r.level === level)
+      .sort((a, b) => {
+        // 先按击杀数降序，再按存活时间降序
+        if (b.killCount !== a.killCount) {
+          return b.killCount - a.killCount;
+        }
+        return b.survivalTime - a.survivalTime;
+      })
+      .slice(0, 50); // 只返回前50名
+  }
+  
+  /**
+   * 检查关卡是否已通关（用于判断是否进入无限模式）
+   */
+  public isLevelCompleted(world: number, level: number): boolean {
+    const progress = this.playerData.levelProgress.find(
+      p => p.world === world && p.level === level
+    );
+    return progress?.isCompleted === true;
   }
 }
