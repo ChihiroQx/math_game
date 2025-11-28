@@ -19,6 +19,24 @@ export const SPECIAL_QUESTION_CONFIG = {
 };
 
 /**
+ * 无限模式配置
+ */
+export const INFINITE_MODE_CONFIG = {
+  // 无限模式下特殊题出现概率（0.0 - 1.0）
+  specialQuestionProbability: 0.4, // 40%（比普通模式高）
+  
+  // 无限模式是否启用
+  enabled: true,
+  
+  // 初始每波怪物数量
+  initialMonstersPerWave: 2,
+  
+  // 怪物数量增长间隔（秒）
+  // 每经过这个时间，每波怪物数量增加1个
+  monsterIncreaseInterval: 30, // 30秒
+};
+
+/**
  * 获取特殊题出现概率
  */
 export function getSpecialQuestionProbability(): number {
@@ -40,17 +58,6 @@ export function getSpecialQuestionTypeProbability(): number {
 }
 
 /**
- * 无限模式配置
- */
-export const INFINITE_MODE_CONFIG = {
-  // 无限模式下特殊题出现概率（0.0 - 1.0）
-  specialQuestionProbability: 0.4, // 40%（比普通模式高）
-  
-  // 无限模式是否启用
-  enabled: true
-};
-
-/**
  * 获取无限模式下特殊题出现概率
  */
 export function getInfiniteModeSpecialQuestionProbability(): number {
@@ -62,5 +69,19 @@ export function getInfiniteModeSpecialQuestionProbability(): number {
  */
 export function isInfiniteModeEnabled(): boolean {
   return INFINITE_MODE_CONFIG.enabled;
+}
+
+/**
+ * 获取无限模式初始每波怪物数量
+ */
+export function getInfiniteModeInitialMonsters(): number {
+  return INFINITE_MODE_CONFIG.initialMonstersPerWave;
+}
+
+/**
+ * 获取无限模式怪物数量增长间隔（秒）
+ */
+export function getInfiniteModeMonsterIncreaseInterval(): number {
+  return INFINITE_MODE_CONFIG.monsterIncreaseInterval;
 }
 

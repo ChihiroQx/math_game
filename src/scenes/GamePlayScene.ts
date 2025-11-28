@@ -10,7 +10,7 @@ import { Monster } from '../entities/Monster';
 import { Princess } from '../entities/Princess';
 import ButtonFactory from '../utils/ButtonFactory';
 import { getTitleFont, getBodyFont, getNumberFont } from '../config/FontConfig';
-import { getSpecialQuestionProbability, getSpecialQuestionCountdown, getInfiniteModeSpecialQuestionProbability } from '../config/GameConfig';
+import { getSpecialQuestionProbability, getSpecialQuestionCountdown, getInfiniteModeSpecialQuestionProbability, getInfiniteModeInitialMonsters, getInfiniteModeMonsterIncreaseInterval } from '../config/GameConfig';
 
 /**
  * 游戏玩法场景 - 战斗版本（使用ButtonFactory）
@@ -40,6 +40,7 @@ export default class GamePlayScene extends Phaser.Scene {
   private waveSpawnInterval: number = 10000; // 固定刷怪间隔（10秒，单位：毫秒）
   private nextWaveTimer!: Phaser.Time.TimerEvent | null; // 下一波刷怪定时器
   private timeAdvancement: number = 0; // 时间提前量（毫秒），用于提前刷怪时调整后续波次
+  private infiniteModeStartTime: number = 0; // 无限模式开始时间（用于计算怪物数量增长）
   
   // UI元素
   private questionText!: Phaser.GameObjects.Text;
@@ -48,6 +49,7 @@ export default class GamePlayScene extends Phaser.Scene {
   private timerText!: Phaser.GameObjects.Text;
   private waveText!: Phaser.GameObjects.Text;
   private pauseButton!: Phaser.GameObjects.Text;
+  private survivalTimeText!: Phaser.GameObjects.Text; // 无限模式存活时间显示
   
   // 特殊题相关UI
   private specialQuestionIcon!: Phaser.GameObjects.Text | null;
@@ -117,6 +119,11 @@ export default class GamePlayScene extends Phaser.Scene {
     
     // 开始计时
     this.timerManager.startTimer();
+    
+    // 无限模式：记录开始时间，用于计算怪物数量增长
+    if (this.gameManager.isInfiniteMode) {
+      this.infiniteModeStartTime = this.time.now;
+    }
     
     // 加载第一个题目
     this.loadQuestion();
@@ -387,6 +394,17 @@ export default class GamePlayScene extends Phaser.Scene {
   private spawnNextWave(): void {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
+    
+    // 无限模式：根据存活时间计算怪物数量（从配置中获取增长间隔）
+    if (this.gameManager.isInfiniteMode) {
+      const elapsedSeconds = Math.floor((this.time.now - this.infiniteModeStartTime) / 1000);
+      const increaseInterval = getInfiniteModeMonsterIncreaseInterval(); // 从配置获取增长间隔
+      const initialMonsters = getInfiniteModeInitialMonsters(); // 从配置获取初始数量
+      const additionalMonsters = Math.floor(elapsedSeconds / increaseInterval); // 每N秒增加1个
+      this.monstersPerWave = initialMonsters + additionalMonsters;
+      console.log(`无限模式：存活${elapsedSeconds}秒，当前每波怪物数：${this.monstersPerWave}`);
+    }
+    
     const spawnCount = Math.min(
       this.monstersPerWave,
       this.monsters.length - this.currentMonsterIndex
@@ -677,6 +695,15 @@ export default class GamePlayScene extends Phaser.Scene {
       fontSize: '24px',
       color: '#FFD700'
     });
+    
+    // 无限模式下显示存活时间（在金币下方）
+    if (this.gameManager.isInfiniteMode) {
+      this.survivalTimeText = this.add.text(20, 50, '⏱️ 存活: 0:00', {
+        fontFamily: getTitleFont(),
+        fontSize: '20px',
+        color: '#4ECDC4'
+      });
+    }
     
     // 进度（隐藏，不再显示）
     this.progressText = this.add.text(width / 2, 20, '', {
@@ -1339,27 +1366,40 @@ export default class GamePlayScene extends Phaser.Scene {
    * 更新计时器显示
    */
   private updateTimerDisplay(): void {
-    // 检查 timerText 是否已初始化
-    if (!this.timerText) {
-      return;
+    // 无限模式：更新存活时间显示
+    if (this.gameManager.isInfiniteMode && this.survivalTimeText) {
+      const elapsed = this.timerManager.getElapsedTime();
+      const minutes = Math.floor(elapsed / 60);
+      const seconds = Math.floor(elapsed % 60);
+      this.survivalTimeText.setText(
+        `⏱️ 存活: ${minutes}:${seconds.toString().padStart(2, '0')}`
+      );
     }
     
-    const remaining = this.timerManager.getRemainingTime();
-    const minutes = Math.floor(remaining / 60);
-    const seconds = Math.floor(remaining % 60);
-    
-    this.timerText.setText(
-      `⏱ ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-    );
-    
-    // 时间不足时变红
-    if (remaining < 30) {
-      this.timerText.setColor('#FF0000');
-    }
-    
-    // 时间到
-    if (remaining <= 0) {
-      this.onGameOver(false);
+    // 普通模式：显示剩余时间
+    if (!this.gameManager.isInfiniteMode) {
+      // 检查 timerText 是否已初始化
+      if (!this.timerText) {
+        return;
+      }
+      
+      const remaining = this.timerManager.getRemainingTime();
+      const minutes = Math.floor(remaining / 60);
+      const seconds = Math.floor(remaining % 60);
+      
+      this.timerText.setText(
+        `⏱ ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+      );
+      
+      // 时间不足时变红
+      if (remaining < 30) {
+        this.timerText.setColor('#FF0000');
+      }
+      
+      // 时间到
+      if (remaining <= 0) {
+        this.onGameOver(false);
+      }
     }
   }
   
