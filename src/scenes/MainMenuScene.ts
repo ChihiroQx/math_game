@@ -441,6 +441,9 @@ export default class MainMenuScene extends Phaser.Scene {
     window.addEventListener('resize', updateInputPosition);
     window.addEventListener('orientationchange', updateInputPosition);
     
+    // 防止重复点击的标志
+    let isProcessing = false;
+    
     // 确认按钮
     const confirmBtn = ButtonFactory.createButton(this, {
       x: width / 2,
@@ -451,36 +454,122 @@ export default class MainMenuScene extends Phaser.Scene {
       color: 0x27ae60,
       fontSize: '24px',
       callback: () => {
+        // 防止重复点击
+        if (isProcessing) {
+          return;
+        }
+        isProcessing = true;
+        
+        const name = inputElement.value.trim();
+        if (name.length < 2) {
+          alert('名字至少需要2个字哦！');
+          isProcessing = false;
+          return;
+        }
+        
+        // 保存名字
+        const dataManager = DataManager.getInstance();
+        dataManager.playerData.playerName = name;
+        dataManager.saveData();
+        
+        // 确保数据已保存
+        console.log('名字已保存:', dataManager.playerData.playerName);
+        
+        // 移除事件监听
+        window.removeEventListener('resize', updateInputPosition);
+        window.removeEventListener('orientationchange', updateInputPosition);
+        
+        // 移除输入框（确保移除）
+        try {
+          if (inputElement && inputElement.parentNode) {
+            inputElement.parentNode.removeChild(inputElement);
+          }
+        } catch (e) {
+          console.warn('移除输入框失败:', e);
+        }
+        
+        // 隐藏输入框（双重保险）
+        inputElement.style.display = 'none';
+        
+        // 销毁游戏对象
+        try {
+          overlay.destroy();
+          dialogBg.destroy();
+          titleText.destroy();
+          promptText.destroy();
+          confirmBtn.destroy();
+          if (!required && cancelBtn) {
+            cancelBtn.destroy();
+          }
+        } catch (e) {
+          console.warn('销毁游戏对象失败:', e);
+        }
+        
+        // 延迟刷新，确保所有清理完成
+        this.time.delayedCall(100, () => {
+          this.scene.restart();
+        });
+      }
+    });
+    confirmBtn.setDepth(102);
+    
+    // 移动端额外处理：直接绑定 pointerup 事件确保触发
+    confirmBtn.setInteractive({ useHandCursor: true });
+    confirmBtn.on('pointerup', () => {
+      if (!isProcessing) {
+        // 直接调用 callback，不依赖动画完成
         const name = inputElement.value.trim();
         if (name.length < 2) {
           alert('名字至少需要2个字哦！');
           return;
         }
         
-        // 保存名字
-        DataManager.getInstance().playerData.playerName = name;
-        DataManager.getInstance().saveData();
+        isProcessing = true;
         
-        // 移除事件监听和输入框
+        // 保存名字
+        const dataManager = DataManager.getInstance();
+        dataManager.playerData.playerName = name;
+        dataManager.saveData();
+        
+        // 确保数据已保存
+        console.log('名字已保存:', dataManager.playerData.playerName);
+        
+        // 移除事件监听
         window.removeEventListener('resize', updateInputPosition);
         window.removeEventListener('orientationchange', updateInputPosition);
-        if (inputElement.parentNode) {
-          document.body.removeChild(inputElement);
-        }
-        overlay.destroy();
-        dialogBg.destroy();
-        titleText.destroy();
-        promptText.destroy();
-        confirmBtn.destroy();
-        if (!required && cancelBtn) {
-          cancelBtn.destroy();
+        
+        // 移除输入框（确保移除）
+        try {
+          if (inputElement && inputElement.parentNode) {
+            inputElement.parentNode.removeChild(inputElement);
+          }
+        } catch (e) {
+          console.warn('移除输入框失败:', e);
         }
         
-        // 刷新玩家信息显示
-        this.scene.restart();
+        // 隐藏输入框（双重保险）
+        inputElement.style.display = 'none';
+        
+        // 销毁游戏对象
+        try {
+          overlay.destroy();
+          dialogBg.destroy();
+          titleText.destroy();
+          promptText.destroy();
+          confirmBtn.destroy();
+          if (!required && cancelBtn) {
+            cancelBtn.destroy();
+          }
+        } catch (e) {
+          console.warn('销毁游戏对象失败:', e);
+        }
+        
+        // 延迟刷新，确保所有清理完成
+        this.time.delayedCall(100, () => {
+          this.scene.restart();
+        });
       }
     });
-    confirmBtn.setDepth(102);
     
     // 取消按钮（仅在非必须设置时显示）
     let cancelBtn: Phaser.GameObjects.Container | null = null;

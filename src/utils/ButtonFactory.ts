@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { getTitleFont, getBodyFont } from '../config/FontConfig';
 
 /**
  * 按钮配置接口
@@ -80,7 +81,7 @@ export default class ButtonFactory {
 
     // 按钮文字（图标+文字）
     const buttonText = scene.add.text(0, 0, `${icon} ${text}`, {
-      fontFamily: 'Arial Black, Microsoft YaHei',
+      fontFamily: getTitleFont(),
       fontSize: fontSize,
       color: textColor,
       stroke: strokeColor,
@@ -186,7 +187,7 @@ export default class ButtonFactory {
 
     // 按钮文字
     const buttonText = scene.add.text(0, 0, text, {
-      fontFamily: 'Arial Black',
+      fontFamily: getTitleFont(),
       fontSize: '36px',
       color: '#ffffff',
       stroke: '#000000',
@@ -273,7 +274,7 @@ export default class ButtonFactory {
 
     // 按钮文字
     const buttonText = scene.add.text(0, 0, text, {
-      fontFamily: 'Arial Black, Microsoft YaHei',
+      fontFamily: getTitleFont(),
       fontSize: '24px',
       color: '#ffffff',
       stroke: '#000000',
@@ -285,7 +286,7 @@ export default class ButtonFactory {
     // 选中标记（右上角金色勾号）
     if (selected) {
       const checkMark = scene.add.text(halfWidth - 8, -halfHeight + 3, '✓', {
-        fontFamily: 'Arial Black',
+        fontFamily: getTitleFont(),
         fontSize: '24px',
         color: '#FFD700',
         stroke: '#000000',
@@ -388,7 +389,7 @@ export default class ButtonFactory {
 
     // 按钮文字
     const buttonText = scene.add.text(20, 0, text, {
-      fontFamily: 'Arial Black, Microsoft YaHei',
+      fontFamily: getTitleFont(),
       fontSize: '36px',
       color: '#ffffff',
       stroke: '#000000',

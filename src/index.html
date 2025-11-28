@@ -12,6 +12,14 @@
     <meta name="x5-fullscreen" content="true">
     <title>数学童话冒险</title>
     <style>
+        /* 阿里巴巴普惠体字体定义 */
+        @font-face {
+            font-family: 'AlibabaPuHuiTi';
+            src: url('assets/font/AlibabaPuHuiTi-3-75-SemiBold.ttf') format('truetype');
+            font-weight: 600;
+            font-style: normal;
+            font-display: swap; /* 优化字体加载性能 */
+        }
         * {
             margin: 0;
             padding: 0;
@@ -26,7 +34,7 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            font-family: 'AlibabaPuHuiTi', 'Microsoft YaHei', Arial, sans-serif;
             /* 移动端优化 */
             -webkit-touch-callout: none; /* 禁用长按菜单 */
             -webkit-user-select: none; /* 禁用文本选择 */
@@ -135,13 +143,13 @@
             font-size: 24px;
             font-weight: bold;
             margin-bottom: 10px;
-            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            font-family: 'AlibabaPuHuiTi', 'Microsoft YaHei', Arial, sans-serif;
         }
         
         #orientation-tip .hint {
             font-size: 16px;
             opacity: 0.8;
-            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            font-family: 'AlibabaPuHuiTi', 'Microsoft YaHei', Arial, sans-serif;
         }
         
         /* 移动端竖屏时隐藏游戏 */
