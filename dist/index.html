@@ -139,7 +139,92 @@
             #loading {
                 display: none !important;
             }
-        }</style><script defer="defer" src="bundle.js"></script></head><body><div id="orientation-tip"><div class="icon">📱</div><div class="text">请将设备横屏</div><div class="hint">为了获得最佳游戏体验，请旋转您的设备至横屏模式</div></div><div id="loading"><div class="spinner"></div><div>游戏加载中...</div></div><div id="game-container"></div><script>// 检测屏幕方向并显示/隐藏提示
+        }</style><script defer="defer" src="bundle.js"></script></head><body><div id="orientation-tip"><div class="icon">📱</div><div class="text">请将设备横屏</div><div class="hint">为了获得最佳游戏体验，请旋转您的设备至横屏模式</div></div><div id="loading"><div class="spinner"></div><div>游戏加载中...</div></div><div id="game-container"></div><script>// 全屏管理
+        const FullscreenManager = {
+            isSupported: function() {
+                const doc = document;
+                return !!(
+                    doc.fullscreenEnabled ||
+                    doc.webkitFullscreenEnabled ||
+                    doc.mozFullScreenEnabled ||
+                    doc.msFullscreenEnabled
+                );
+            },
+            
+            isFullscreen: function() {
+                const doc = document;
+                return !!(
+                    doc.fullscreenElement ||
+                    doc.webkitFullscreenElement ||
+                    doc.mozFullScreenElement ||
+                    doc.msFullscreenElement
+                );
+            },
+            
+            requestFullscreen: async function(element) {
+                const target = element || document.documentElement;
+                const doc = document;
+                
+                try {
+                    if (target.requestFullscreen) {
+                        await target.requestFullscreen();
+                        return true;
+                    }
+                    if (target.webkitRequestFullscreen) {
+                        target.webkitRequestFullscreen();
+                        return true;
+                    }
+                    if (target.webkitRequestFullScreen) {
+                        target.webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT);
+                        return true;
+                    }
+                    if (target.mozRequestFullScreen) {
+                        target.mozRequestFullScreen();
+                        return true;
+                    }
+                    if (target.msRequestFullscreen) {
+                        target.msRequestFullscreen();
+                        return true;
+                    }
+                } catch (error) {
+                    console.warn('进入全屏失败:', error);
+                    return false;
+                }
+                return false;
+            },
+            
+            exitFullscreen: async function() {
+                const doc = document;
+                try {
+                    if (doc.exitFullscreen) {
+                        await doc.exitFullscreen();
+                        return true;
+                    }
+                    if (doc.webkitExitFullscreen) {
+                        doc.webkitExitFullscreen();
+                        return true;
+                    }
+                    if (doc.webkitCancelFullScreen) {
+                        doc.webkitCancelFullScreen();
+                        return true;
+                    }
+                    if (doc.mozCancelFullScreen) {
+                        doc.mozCancelFullScreen();
+                        return true;
+                    }
+                    if (doc.msExitFullscreen) {
+                        doc.msExitFullscreen();
+                        return true;
+                    }
+                } catch (error) {
+                    console.warn('退出全屏失败:', error);
+                    return false;
+                }
+                return false;
+            }
+        };
+        
+        // 检测屏幕方向并显示/隐藏提示
         function checkOrientation() {
             const tip = document.getElementById('orientation-tip');
             const gameContainer = document.getElementById('game-container');
@@ -167,15 +252,55 @@
             }
         }
         
+        // 尝试进入全屏（需要用户手势触发）
+        let hasTriedFullscreen = false;
+        function tryFullscreen() {
+            if (hasTriedFullscreen || !FullscreenManager.isSupported()) {
+                return;
+            }
+            
+            // 移动端：在横屏时尝试全屏
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            if (isMobile) {
+                const isPortrait = window.innerHeight > window.innerWidth;
+                if (isPortrait) {
+                    return; // 竖屏时不尝试全屏
+                }
+            }
+            
+            hasTriedFullscreen = true;
+            FullscreenManager.requestFullscreen().catch(() => {
+                // 全屏失败不影响游戏
+            });
+        }
+        
         // 初始检查
         checkOrientation();
         
         // 监听方向变化
         window.addEventListener('orientationchange', () => {
             setTimeout(checkOrientation, 100);
+            // 方向变化后，如果是横屏且支持全屏，可以提示用户点击进入全屏
+            hasTriedFullscreen = false;
         });
         
         // 监听窗口大小变化（某些设备不触发 orientationchange）
         window.addEventListener('resize', () => {
             setTimeout(checkOrientation, 100);
+        });
+        
+        // 在用户第一次交互时尝试全屏（移动端需要用户手势）
+        document.addEventListener('click', tryFullscreen, { once: true });
+        document.addEventListener('touchstart', tryFullscreen, { once: true });
+        
+        // 监听全屏状态变化
+        ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(event => {
+            document.addEventListener(event, () => {
+                // 全屏状态变化时可以做一些处理
+                if (FullscreenManager.isFullscreen()) {
+                    console.log('已进入全屏模式');
+                } else {
+                    console.log('已退出全屏模式');
+                }
+            });
         });</script></body></html>
