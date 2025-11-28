@@ -74,9 +74,13 @@ export class Monster {
     this.sprite.setFlipX(false); // 不翻转，面向左侧（公主方向）
     this.sprite.setOrigin(0.5, 1); // 设置锚点为底部中心，脚底作为定位点
     
-    // 播放待机动画
+    // 播放待机动画（检查动画是否存在）
     const animKey = `${this.animPrefix}_wait`;
-    this.sprite.play(animKey);
+    if (scene.anims.exists(animKey)) {
+      this.sprite.play(animKey);
+    } else {
+      console.warn(`怪物动画不存在: ${animKey}，使用静态帧`);
+    }
     
     // 创建血条背景（放在脚底下方，统一位置）
     this.healthBarBg = scene.add.graphics();
@@ -134,12 +138,14 @@ export class Monster {
     // 播放受击动画
     const hitedKey = `${this.animPrefix}_hited`;
     const waitKey = `${this.animPrefix}_wait`;
-    this.sprite.play(hitedKey);
-    this.sprite.once('animationcomplete', () => {
-      if (this.isAlive) {
-        this.sprite.play(waitKey);
-      }
-    });
+    if (this.scene.anims.exists(hitedKey)) {
+      this.sprite.play(hitedKey);
+      this.sprite.once('animationcomplete', () => {
+        if (this.isAlive && this.scene.anims.exists(waitKey)) {
+          this.sprite.play(waitKey);
+        }
+      });
+    }
     
     // 受伤震动
     const originalX = this.sprite.x;
@@ -231,12 +237,14 @@ export class Monster {
     // 播放攻击动画（使用动态的动画key）
     const attackKey = `${this.animPrefix}_attack`;
     const waitKey = `${this.animPrefix}_wait`;
-    this.sprite.play(attackKey);
-    this.sprite.once('animationcomplete', () => {
-      if (this.isAlive) {
-        this.sprite.play(waitKey);
-      }
-    });
+    if (this.scene.anims.exists(attackKey)) {
+      this.sprite.play(attackKey);
+      this.sprite.once('animationcomplete', () => {
+        if (this.isAlive && this.scene.anims.exists(waitKey)) {
+          this.sprite.play(waitKey);
+        }
+      });
+    }
     
     // 延迟执行攻击回调（等待攻击动画播放到合适位置）
     this.scene.time.delayedCall(300, () => {

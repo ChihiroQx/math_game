@@ -26,22 +26,22 @@ export interface CharacterData {
   scale: number;              // 缩放比例
   color: string;              // 代表颜色（用于UI展示）
   
-  // 子弹特效
-  bulletColor: number;        // 子弹颜色（外圈）
-  bulletCoreColor: number;    // 子弹核心颜色
-  bulletSize: number;         // 子弹大小
+  // 特效配置
+  bulletEffect: string;       // 子弹特效ID（如 'effect_008'）
+  hitEffect: string;          // 击中特效ID（如 'effect_020h'）
+  effectScale: number;        // 特效缩放（默认1.0）
 }
 
 /**
  * 所有可用角色配置
  */
 export const CHARACTERS: Record<string, CharacterData> = {
-  // 默认角色 - 蓝白骑士
+  // 默认角色 - 冰霜之星
   'mage_307': {
     id: 'mage_307',
-    title: '圣骑之星',
+    title: '冰霜之星',
     name: '艾莉丝',
-    description: '见习骑士，属性均衡',
+    description: '冰霜魔法，属性均衡',
     spritePrefix: 'mage_307',
     assetPath: 'assets/res/player/307',
     
@@ -55,19 +55,19 @@ export const CHARACTERS: Record<string, CharacterData> = {
     isDefault: true,
     
     scale: 0.8,
-    color: '#FF69B4',    // 粉色
+    color: '#3498DB',    // 蓝色（蓝色和金色）
     
-    bulletColor: 0xFF69B4,      // 粉色子弹
-    bulletCoreColor: 0xFFFFFF,  // 白色核心
-    bulletSize: 12
+    bulletEffect: 'effect_008', // 蓝色电球（12帧，完美匹配蓝色和金色）
+    hitEffect: 'effect_061h',   // 蓝色星爆（8帧，电蓝色射线，完美匹配）
+    effectScale: 0.5            // 缩小到一半
   },
   
-  // 黑发刺客 - 高攻击
+  // 光明使者 - 高攻击
   'mage_119': {
     id: 'mage_119',
-    title: '暗影刺客',
+    title: '光明使者',
     name: '莉莉丝',
-    description: '神秘敏捷，攻击+20%，生命-10%',
+    description: '光明魔法，攻击+20%，生命-10%',
     spritePrefix: 'mage_119',
     assetPath: 'assets/res/player/119',
     
@@ -81,19 +81,19 @@ export const CHARACTERS: Record<string, CharacterData> = {
     isDefault: false,
     
     scale: 0.8,
-    color: '#9B59B6',    // 紫色
+    color: '#87CEEB',    // 浅蓝色（光属性，浅蓝色和白色）
     
-    bulletColor: 0x9B59B6,      // 紫色子弹
-    bulletCoreColor: 0xE6E6FA,  // 淡紫色核心
-    bulletSize: 12
+    bulletEffect: 'effect_087f', // 黄色/金色水滴状能量（9帧，完美匹配光属性）
+    hitEffect: 'effect_036h',     // 圣光爆炸（14帧，完美匹配光属性）
+    effectScale: 0.5              // 缩小到一半
   },
   
-  // 蓝发法师 - 高生命
+  // 暗影法师 - 高生命
   'mage_303': {
     id: 'mage_303',
-    title: '冰霜法师',
+    title: '暗影法师',
     name: '艾莎',
-    description: '冰雪魔法，生命+30%，攻击-10%',
+    description: '暗影魔法，生命+30%，攻击-10%',
     spritePrefix: 'mage_303',
     assetPath: 'assets/res/player/303',
     
@@ -107,19 +107,19 @@ export const CHARACTERS: Record<string, CharacterData> = {
     isDefault: false,
     
     scale: 0.8,
-    color: '#3498DB',    // 蓝色
+    color: '#6A1B9A',    // 深紫色（暗属性，深蓝色和金色）
     
-    bulletColor: 0x3498DB,      // 蓝色子弹
-    bulletCoreColor: 0xADD8E6,  // 淡蓝色核心
-    bulletSize: 12
+    bulletEffect: 'effect_020f', // 紫色和白色能量投射物（7帧，完美匹配暗属性）
+    hitEffect: 'effect_088h',    // 神秘爆炸（17帧，大型暗影爆炸，更震撼）
+    effectScale: 0.5             // 缩小到一半
   },
   
-  // 粉发魔法少女 - 快速射击
+  // 魔法少女 - 快速射击
   'mage_311': {
     id: 'mage_311',
     title: '魔法少女',
     name: '米娅',
-    description: '活力魔法，攻速+30%，攻击-15%',
+    description: '粉色魔法，攻速+30%，攻击-15%',
     spritePrefix: 'mage_311',
     assetPath: 'assets/res/player/311',
     
@@ -133,14 +133,14 @@ export const CHARACTERS: Record<string, CharacterData> = {
     isDefault: false,
     
     scale: 0.8,
-    color: '#27AE60',    // 绿色
+    color: '#FF69B4',    // 粉色（粉色属性）
     
-    bulletColor: 0x27AE60,      // 绿色子弹
-    bulletCoreColor: 0x90EE90,  // 淡绿色核心
-    bulletSize: 10               // 小一点，更快
+    bulletEffect: 'effect_036f', // 混合能量飞弹（10帧，火冰混合）
+    hitEffect: 'effect_036h',     // 圣光爆炸（14帧，金色闪光，神圣爆发）
+    effectScale: 0.45            // 缩小到一半（原来0.9）
   },
   
-  // 紫发术士 - 全能型
+  // 星辉术士 - 全能型
   'mage_334': {
     id: 'mage_335',
     title: '星辉术士',
@@ -159,14 +159,14 @@ export const CHARACTERS: Record<string, CharacterData> = {
     isDefault: false,
     
     scale: 0.8,
-    color: '#E67E22',    // 橙色
+    color: '#E67E22',    // 橙色/金色（星光属性，紫色和金色）
     
-    bulletColor: 0xE67E22,      // 橙色子弹
-    bulletCoreColor: 0xFFDAB9,  // 桃色核心
-    bulletSize: 12
+    bulletEffect: 'effect_036f', // 火冰混合能量（10帧，包含金色元素，匹配星光）
+    hitEffect: 'effect_036h',     // 圣光爆炸（14帧，橙色、黄色、白色，匹配金色和星光）
+    effectScale: 0.5              // 缩小到一半
   },
   
-  // 金甲战士 - 终极战士
+  // 烈焰骑士 - 终极战士
   'mage_315': {
     id: 'mage_315',
     title: '烈焰骑士',
@@ -185,11 +185,11 @@ export const CHARACTERS: Record<string, CharacterData> = {
     isDefault: false,
     
     scale: 0.8,
-    color: '#E74C3C',    // 红色
+    color: '#E74C3C',    // 红色（火焰属性，红色和金色）
     
-    bulletColor: 0xE74C3C,      // 红色子弹
-    bulletCoreColor: 0xFF6347,  // 番茄红核心
-    bulletSize: 14               // 最大，最强
+    bulletEffect: 'effect_030f', // 红色/橙色/黄色火焰飞弹（9帧，完美匹配火焰属性）
+    hitEffect: 'effect_070',     // 烈焰爆炸（14帧，三个橙色/红色火焰，最震撼）
+    effectScale: 0.55            // 缩小到一半（原来1.1）
   }
 };
 

@@ -202,50 +202,37 @@ export class Princess {
     
     // 延迟发射魔法弹（等攻击动画播放到一半）
     this.scene.time.delayedCall(this.ATTACK_DELAY, () => {
-      // 发射魔法弹 - 使用角色配置的颜色绘制
-      const magic = this.scene.add.graphics();
-      magic.x = startX;
-      magic.y = startY;
+      // 使用特效精灵创建子弹
+      const bulletEffect = this.characterConfig.bulletEffect;
+      const bulletFirstFrame = `${bulletEffect}_01`;
       
-      // 使用角色配置的子弹颜色绘制发光球体
-      const bulletColor = this.characterConfig.bulletColor;
-      const coreColor = this.characterConfig.bulletCoreColor;
-      const size = this.characterConfig.bulletSize;
+      // 创建子弹精灵
+      const bullet = this.scene.add.sprite(startX, startY, bulletFirstFrame);
+      bullet.setScale(this.characterConfig.effectScale || 1.0);
+      bullet.setDepth(50); // 显示在角色前面
       
-      // 外层（角色主色）
-      magic.fillStyle(bulletColor, 1);
-      magic.fillCircle(0, 0, size);
+      // 播放子弹动画（循环）
+      if (this.scene.anims.exists(bulletEffect)) {
+        bullet.play(bulletEffect);
+      }
       
-      // 中层（半透明核心色）
-      magic.fillStyle(coreColor, 0.8);
-      magic.fillCircle(0, 0, size * 0.67);
+      // 设置混合模式，让特效更明亮
+      bullet.setBlendMode(Phaser.BlendModes.ADD);
       
-      // 内核（亮白核心）
-      magic.fillStyle(0xFFFFFF, 1);
-      magic.fillCircle(0, 0, size * 0.33)
+      // 计算旋转角度（子弹朝向目标）
+      const angle = Phaser.Math.Angle.Between(startX, startY, targetX, targetY);
+      bullet.setRotation(angle);
       
-      // 魔法弹飞行动画（根据距离动态计算飞行时间）
+      // 魔法弹飞行动画
       this.scene.tweens.add({
-        targets: magic,
+        targets: bullet,
         x: targetX,
         y: targetY,
         duration: flightDuration,
         ease: 'Linear',
         onComplete: () => {
           // 击中时播放爆炸特效
-          const explosion = this.scene.add.sprite(targetX, targetY, 'hit_explosion_01');
-          explosion.setScale(1.2);
-          if (this.scene.anims.exists('hit_explosion')) {
-            explosion.play('hit_explosion');
-            explosion.once('animationcomplete', () => {
-              explosion.destroy();
-            });
-          } else {
-            // 如果动画不存在，延迟销毁
-            this.scene.time.delayedCall(300, () => {
-              explosion.destroy();
-            });
-          }
+          this.createHitEffect(targetX, targetY);
           
           // 显示伤害数字（使用角色颜色）
           const damageText = this.scene.add.text(targetX, targetY - 30, `-${damage}`, {
@@ -269,13 +256,46 @@ export class Princess {
             }
           });
           
-          magic.destroy();
+          // 销毁子弹
+          bullet.destroy();
         }
       });
     });
     
     // 返回总时间（毫秒），用于同步伤害触发
     return totalTime;
+  }
+  
+  /**
+   * 创建击中爆炸特效
+   */
+  private createHitEffect(x: number, y: number): void {
+    const hitEffect = this.characterConfig.hitEffect;
+    const hitFirstFrame = `${hitEffect}_01`;
+    
+    // 创建爆炸精灵
+    const explosion = this.scene.add.sprite(x, y, hitFirstFrame);
+    explosion.setScale(this.characterConfig.effectScale || 1.0);
+    explosion.setDepth(100); // 显示在最前面
+    explosion.setBlendMode(Phaser.BlendModes.ADD); // 增亮混合
+    
+    // 播放爆炸动画
+    if (this.scene.anims.exists(hitEffect)) {
+      explosion.play(hitEffect);
+      explosion.once('animationcomplete', () => {
+        explosion.destroy();
+      });
+    } else {
+      // 如果动画不存在，延迟销毁
+      this.scene.time.delayedCall(300, () => {
+        explosion.destroy();
+      });
+    }
+    
+    // 可选：为强力角色添加屏幕震动
+    if (this.characterConfig.attackPower >= 120) {
+      this.scene.cameras.main.shake(50, 0.003);
+    }
   }
   
   /**

@@ -4,6 +4,7 @@ import QuestionManager, { QuestionData } from '../managers/QuestionManager';
 import AudioManager from '../managers/AudioManager';
 import DataManager from '../managers/DataManager';
 import TimerManager from '../managers/TimerManager';
+import ResourceManager from '../managers/ResourceManager';
 import { Monster } from '../entities/Monster';
 import { Princess } from '../entities/Princess';
 import ButtonFactory from '../utils/ButtonFactory';
@@ -49,11 +50,14 @@ export default class GamePlayScene extends Phaser.Scene {
     super({ key: 'GamePlayScene' });
   }
   
-  create(): void {
+  async create(): Promise<void> {
     this.gameManager = GameManager.getInstance();
     this.questionManager = QuestionManager.getInstance();
     this.audioManager = AudioManager.getInstance();
     this.timerManager = TimerManager.getInstance();
+    
+    // 设置资源管理器场景
+    ResourceManager.getInstance().setScene(this);
     
     // 重置游戏状态
     this.gameEnded = false;
@@ -70,8 +74,8 @@ export default class GamePlayScene extends Phaser.Scene {
     // 创建背景
     this.createBackground();
     
-    // 创建公主
-    this.createPrincess();
+    // 创建公主（异步，可能需要加载角色资源）
+    await this.createPrincess();
     
     // 创建UI
     this.createUI(width, height);
@@ -85,7 +89,7 @@ export default class GamePlayScene extends Phaser.Scene {
       this.gameManager.currentLevel
     );
     
-    this.createMonsters();
+    await this.createMonsters();
     this.spawnNextWave();
     
     // 开始计时
@@ -216,12 +220,22 @@ export default class GamePlayScene extends Phaser.Scene {
   /**
    * 创建公主
    */
-  private createPrincess(): void {
+  private async createPrincess(): Promise<void> {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
     
     // 获取当前选择的角色ID
     const characterId = DataManager.getInstance().getCurrentCharacter();
+    const resourceManager = ResourceManager.getInstance();
+    
+    // 如果角色资源未加载，延迟加载
+    if (!resourceManager.isCharacterLoaded(characterId)) {
+      try {
+        await resourceManager.loadCharacter(characterId);
+      } catch (error) {
+        console.error(`加载角色失败: ${characterId}`, error);
+      }
+    }
     
     // 公主位置：左侧，中间高度
     this.princess = new Princess(
@@ -235,7 +249,7 @@ export default class GamePlayScene extends Phaser.Scene {
   /**
    * 创建初始怪物池（根据关卡动态生成，控制游戏时长约2分钟）
    */
-  private createMonsters(): void {
+  private async createMonsters(): Promise<void> {
     // 根据关卡调整怪物数量，第一关5只，逐步增加
     const world = this.gameManager.currentWorld;
     const level = this.gameManager.currentLevel;
@@ -263,9 +277,24 @@ export default class GamePlayScene extends Phaser.Scene {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
     
+    // 确保需要的怪物资源已加载
+    const resourceManager = ResourceManager.getInstance();
+    const loadedMonsters = new Set<number>();
+    
     for (let i = 0; i < initialMonsters; i++) {
       // 随机选择怪物类型（1-8），让怪物外观多样化
       const monsterType = Math.floor(Math.random() * 8) + 1; // 1, 2, 3, 4, 5, 6, 7, 8
+      
+      // 如果怪物资源未加载，延迟加载
+      if (!resourceManager.isMonsterLoaded(monsterType) && !loadedMonsters.has(monsterType)) {
+        try {
+          await resourceManager.loadMonster(monsterType);
+          loadedMonsters.add(monsterType);
+        } catch (error) {
+          console.error(`加载怪物失败: monster${monsterType}`, error);
+        }
+      }
+      
       const monsterId = `monster_${monsterType}`; // 转换为配置ID
       
       // 创建时放在屏幕外
@@ -285,7 +314,7 @@ export default class GamePlayScene extends Phaser.Scene {
   /**
    * 动态添加新怪物（限制在最大数量内）
    */
-  private addNewMonster(): void {
+  private async addNewMonster(): Promise<void> {
     // 检查怪物池大小是否已达到最大数量
     if (this.monsters.length >= this.maxMonsters) {
       return;
@@ -293,8 +322,19 @@ export default class GamePlayScene extends Phaser.Scene {
     
     // 随机选择怪物类型（1-8），让怪物外观多样化
     const monsterType = Math.floor(Math.random() * 8) + 1;
-    const monsterId = `monster_${monsterType}`;
+    const resourceManager = ResourceManager.getInstance();
     
+    // 如果怪物资源未加载，延迟加载
+    if (!resourceManager.isMonsterLoaded(monsterType)) {
+      try {
+        await resourceManager.loadMonster(monsterType);
+      } catch (error) {
+        console.error(`加载怪物失败: monster${monsterType}`, error);
+        return; // 加载失败，不创建怪物
+      }
+    }
+    
+    const monsterId = `monster_${monsterType}`;
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
     
@@ -451,7 +491,10 @@ export default class GamePlayScene extends Phaser.Scene {
         const remainingToSpawn = this.maxMonsters - this.totalMonstersDefeated;
         const toAdd = Math.min(3, remainingToSpawn); // 一次最多添加3只
         for (let i = 0; i < toAdd; i++) {
-          this.addNewMonster();
+          // 异步添加怪物（不等待，避免阻塞）
+          this.addNewMonster().catch(error => {
+            console.error('添加怪物失败:', error);
+          });
         }
       }
       
@@ -883,6 +926,11 @@ export default class GamePlayScene extends Phaser.Scene {
    * 更新计时器显示
    */
   private updateTimerDisplay(): void {
+    // 检查 timerText 是否已初始化
+    if (!this.timerText) {
+      return;
+    }
+    
     const remaining = this.timerManager.getRemainingTime();
     const minutes = Math.floor(remaining / 60);
     const seconds = Math.floor(remaining % 60);

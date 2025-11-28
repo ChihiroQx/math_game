@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import DataManager from '../managers/DataManager';
+import ResourceManager from '../managers/ResourceManager';
 import ButtonFactory from '../utils/ButtonFactory';
 import { CHARACTERS, CharacterData, getAllCharacters } from '../config/CharacterConfig';
 
@@ -8,6 +9,7 @@ import { CHARACTERS, CharacterData, getAllCharacters } from '../config/Character
  */
 export default class SkinShopScene extends Phaser.Scene {
   private stars: Phaser.GameObjects.Graphics[] = [];
+  private characterContainers: Map<string, Phaser.GameObjects.Container> = new Map();
   
   constructor() {
     super({ key: 'SkinShopScene' });
@@ -16,6 +18,9 @@ export default class SkinShopScene extends Phaser.Scene {
   create(): void {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
+    
+    // 设置资源管理器场景
+    ResourceManager.getInstance().setScene(this);
     
     // 背景
     this.createBackground();
@@ -32,9 +37,115 @@ export default class SkinShopScene extends Phaser.Scene {
     // 玩家金币显示
     this.createCoinDisplay(width);
     
-    // 皮肤列表
+    // 先创建皮肤列表（显示卡片）
     this.createSkinList(width, height);
+    
+    // 然后异步加载所有角色资源
+    this.loadAllCharactersForShop();
   }
+  
+  /**
+   * 为皮肤商店异步加载所有角色资源
+   */
+  private async loadAllCharactersForShop(): Promise<void> {
+    const resourceManager = ResourceManager.getInstance();
+    const characters = getAllCharacters();
+    
+    // 收集所有需要加载的角色ID
+    const charactersToLoad: string[] = [];
+    
+    for (const character of characters) {
+      if (resourceManager.isCharacterLoaded(character.id)) {
+        // 资源已加载，更新预览
+        this.updateCharacterPreview(character.id);
+      } else {
+        // 需要加载
+        charactersToLoad.push(character.id);
+      }
+    }
+    
+    // 如果没有需要加载的角色，直接返回
+    if (charactersToLoad.length === 0) {
+      return;
+    }
+    
+    // 批量加载所有角色资源
+    try {
+      console.log(`开始加载 ${charactersToLoad.length} 个角色资源...`);
+      await resourceManager.loadCharacters(charactersToLoad);
+      console.log(`角色资源加载完成，共加载 ${charactersToLoad.length} 个角色`);
+      
+      // 延迟更新预览，确保资源完全可用
+      charactersToLoad.forEach((id) => {
+        this.time.delayedCall(50, () => {
+          this.updateCharacterPreview(id);
+        });
+      });
+    } catch (error) {
+      console.error('加载角色资源失败:', error);
+    }
+  }
+  
+  /**
+   * 更新角色预览（资源加载完成后调用）
+   */
+  private updateCharacterPreview(characterId: string): void {
+    const container = this.characterContainers.get(characterId);
+    if (!container) {
+      console.warn(`容器不存在: ${characterId}`);
+      return;
+    }
+    
+    const character = getAllCharacters().find(c => c.id === characterId);
+    if (!character) {
+      console.warn(`角色配置不存在: ${characterId}`);
+      return;
+    }
+    
+    const spriteKey = `${character.spritePrefix}_wait_001`;
+    const waitAnimKey = `${character.spritePrefix}_wait`;
+    
+    // 检查资源是否存在
+    if (!this.textures.exists(spriteKey)) {
+      console.warn(`资源不存在: ${spriteKey}, characterId: ${characterId}, spritePrefix: ${character.spritePrefix}`);
+      return;
+    }
+    
+    console.log(`准备更新预览: ${characterId}, spriteKey: ${spriteKey}`);
+    
+    // 移除占位符和加载文本
+    const toRemove: Phaser.GameObjects.GameObject[] = [];
+    container.list.forEach((child: any) => {
+      if (child.getData && (
+        child.getData('isPlaceholder') || 
+        child.getData('isLoadingText')
+      )) {
+        toRemove.push(child);
+      }
+    });
+    toRemove.forEach(child => {
+      container.remove(child);
+      child.destroy();
+    });
+    
+    // 获取容器高度（从卡片配置中获取）
+    const cardHeight = 165; // 与 createSkinCard 中的 cardHeight 保持一致
+    
+    // 创建预览精灵
+    const previewSprite = this.add.sprite(80, cardHeight - 15, spriteKey);
+    previewSprite.setScale(character.scale * 1.25);
+    previewSprite.setOrigin(0.5, 1);
+    
+    // 播放待机动画（如果动画存在）
+    if (this.anims.exists(waitAnimKey)) {
+      previewSprite.play(waitAnimKey);
+    }
+    
+    container.add(previewSprite);
+    
+    console.log(`已更新角色预览: ${characterId}`);
+  }
+  
   
   update(): void {
     // 星星闪烁动画
@@ -218,6 +329,9 @@ export default class SkinShopScene extends Phaser.Scene {
     const container = this.add.container(x, y);
     container.setAlpha(0);
     
+    // 保存容器引用，用于后续更新
+    this.characterContainers.set(character.id, container);
+    
     // 卡片背景
     const cardBg = this.add.graphics();
     cardBg.fillStyle(0xFFFFFF, 0.3);
@@ -232,15 +346,39 @@ export default class SkinShopScene extends Phaser.Scene {
     container.add(cardBg);
     
     // 角色预览 - 显示真实的角色待机动画
-    const previewSprite = this.add.sprite(80, height - 15, `${character.spritePrefix}_wait_001`);
-    previewSprite.setScale(character.scale * 1.25); // 稍微缩小适应新高度
-    previewSprite.setOrigin(0.5, 1); // 底部中心锚点
-    
-    // 播放待机动画
+    const spriteKey = `${character.spritePrefix}_wait_001`;
     const waitAnimKey = `${character.spritePrefix}_wait`;
-    previewSprite.play(waitAnimKey);
     
-    container.add(previewSprite);
+    // 检查资源是否存在
+    if (this.textures.exists(spriteKey)) {
+      const previewSprite = this.add.sprite(80, height - 15, spriteKey);
+      previewSprite.setScale(character.scale * 1.25); // 稍微缩小适应新高度
+      previewSprite.setOrigin(0.5, 1); // 底部中心锚点
+      
+      // 播放待机动画（如果动画存在）
+      if (this.anims.exists(waitAnimKey)) {
+        previewSprite.play(waitAnimKey);
+      }
+      
+      container.add(previewSprite);
+    } else {
+      // 资源未加载，显示占位符
+      const placeholder = this.add.graphics();
+      placeholder.fillStyle(0x888888, 0.5);
+      placeholder.fillRect(40, height - 60, 80, 80);
+      placeholder.setAlpha(0.5);
+      placeholder.setData('isPlaceholder', true);
+      container.add(placeholder);
+      
+      const loadingText = this.add.text(80, height - 20, '加载中...', {
+        fontFamily: 'Arial, Microsoft YaHei',
+        fontSize: '12px',
+        color: '#FFFFFF'
+      });
+      loadingText.setOrigin(0.5);
+      loadingText.setData('isLoadingText', true);
+      container.add(loadingText);
+    }
     
     // 称号-名字（适中的描边和阴影）
     const fullName = `${character.title}-${character.name}`;
