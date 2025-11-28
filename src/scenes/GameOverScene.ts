@@ -22,7 +22,7 @@ export default class GameOverScene extends Phaser.Scene {
     correct: number; 
     total: number;
     isInfiniteMode?: boolean;
-    killCount?: number;
+    killCount?: number; // 击杀怪物数（每个怪物1金币）
     survivalTime?: number;
     coinsEarned?: number;
   }): Promise<void> {
@@ -177,8 +177,9 @@ export default class GameOverScene extends Phaser.Scene {
     } else {
       // 普通模式结算显示
       const scoreY = data.victory ? height * 0.48 : height * 0.35;
-      // 得分就是金币数，显示为获得金币奖励
-      const coinsText = this.add.text(width / 2, scoreY, `💰 获得金币奖励: ${data.score}`, {
+      // 金币数 = 击杀怪物数（每个怪物1金币）
+      const killCount = data.killCount || data.score || 0; // 优先使用 killCount，如果没有则使用 score
+      const coinsText = this.add.text(width / 2, scoreY, `💰 获得金币奖励: ${killCount}`, {
         fontFamily: getBodyFont(),
         fontSize: '36px',
         color: '#FFD700',
@@ -186,21 +187,21 @@ export default class GameOverScene extends Phaser.Scene {
         strokeThickness: 4
       });
       coinsText.setOrigin(0.5);
-      
-      // 正确率（修复NaN问题）
-      const accuracy = data.total > 0 ? (data.correct / data.total * 100).toFixed(1) : '0.0';
-      const accuracyText = this.add.text(
-        width / 2,
-        scoreY + 60,
-        `正确率: ${accuracy}% (${data.correct}/${data.total})`,
-        {
+    
+    // 正确率（修复NaN问题）
+    const accuracy = data.total > 0 ? (data.correct / data.total * 100).toFixed(1) : '0.0';
+    const accuracyText = this.add.text(
+      width / 2,
+      scoreY + 60,
+      `正确率: ${accuracy}% (${data.correct}/${data.total})`,
+      {
           fontFamily: getBodyFont(),
-          fontSize: '28px',
-          color: '#ffffff'
-        }
-      );
-      accuracyText.setOrigin(0.5);
-      
+        fontSize: '28px',
+        color: '#ffffff'
+      }
+    );
+    accuracyText.setOrigin(0.5);
+    
       // 金币奖励（普通模式不再显示，因为金币已在击杀时获得）
       // 注：普通模式的金币在击杀怪物时已获得，无需额外显示
     }

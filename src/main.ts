@@ -17,29 +17,20 @@ import LevelLeaderboardScene from './scenes/LevelLeaderboardScene';
 // 检测是否为移动设备
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-// 获取屏幕尺寸（根据设备宽度做全屏适配）
-function getScreenSize() {
-  // 使用实际窗口尺寸，确保铺满屏幕
-  const width = window.innerWidth || document.documentElement.clientWidth || 1280;
-  const height = window.innerHeight || document.documentElement.clientHeight || 720;
-  
-  return {
-    width: Math.max(width, 800), // 最小宽度 800px
-    height: Math.max(height, 600) // 最小高度 600px
-  };
-}
-
-const screenSize = getScreenSize();
+// 游戏设计尺寸（固定宽高比 16:9）
+const DESIGN_WIDTH = 1280;
+const DESIGN_HEIGHT = 720;
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
-  width: screenSize.width,
-  height: screenSize.height,
+  width: DESIGN_WIDTH, // 使用固定的设计宽度
+  height: DESIGN_HEIGHT, // 使用固定的设计高度
   parent: 'game-container',
   backgroundColor: '#87CEEB',
   scale: {
-    // 使用 RESIZE 模式，让画布自动适应容器大小，铺满整个屏幕
-    mode: Phaser.Scale.RESIZE,
+    // 使用 FIT 模式：保持宽高比，尽可能铺满屏幕，元素不变形
+    // FIT 模式会自动缩放游戏以适应容器，同时保持宽高比
+    mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
     // 响应式调整间隔
     resizeInterval: 100,
@@ -83,7 +74,7 @@ const config: Phaser.Types.Core.GameConfig = {
 let gameInstance: Phaser.Game | null = null;
 let isCreatingGame = false;
 
-// 等待字体加载完成
+// 等待字体加载完成（改进版，增加超时和错误处理）
 function waitForFont(fontFamily: string, callback: () => void) {
   // 如果游戏已经创建，不再重复创建
   if (gameInstance || isCreatingGame) {
@@ -91,53 +82,76 @@ function waitForFont(fontFamily: string, callback: () => void) {
     return;
   }
   
+  // 设置最大等待时间（3秒），超时后继续加载游戏
+  const maxWaitTime = 3000;
+  const startTime = Date.now();
+  let hasCalled = false;
+  
+  const callCallback = () => {
+    if (hasCalled) return;
+    hasCalled = true;
+    callback();
+  };
+  
+  // 超时保护：即使字体未加载，也要继续加载游戏
+  const timeoutId = setTimeout(() => {
+    if (!hasCalled) {
+      console.warn(`⚠️ 字体 ${fontFamily} 加载超时，使用备用字体继续加载游戏`);
+      callCallback();
+    }
+  }, maxWaitTime);
+  
   if ('fonts' in document) {
-    let hasCalled = false; // 防止重复调用 callback
-    
     // 使用 Font Loading API 检测字体
     const checkFont = () => {
-      if (hasCalled) return; // 防止重复调用
+      if (hasCalled) return;
       
-      // document.fonts.check() 返回布尔值，不是 Promise
-      const loaded = (document as any).fonts.check(`12px "${fontFamily}"`);
-      
-      if (loaded) {
-        console.log(`✅ 字体 ${fontFamily} 已加载`);
-        hasCalled = true;
-        callback();
-      } else if (!hasCalled) {
-        // 如果字体未加载，等待一段时间后重试
-        console.log(`⏳ 等待字体 ${fontFamily} 加载...`);
-        setTimeout(() => {
-          if (hasCalled) return; // 防止重复调用
-          
-          const retryLoaded = (document as any).fonts.check(`12px "${fontFamily}"`);
-          if (retryLoaded) {
-            console.log(`✅ 字体 ${fontFamily} 已加载（重试成功）`);
-          } else {
-            console.warn(`⚠️ 字体 ${fontFamily} 未加载，使用备用字体`);
+      try {
+        // document.fonts.check() 返回布尔值
+        const loaded = (document as any).fonts.check(`12px "${fontFamily}"`);
+        
+        if (loaded) {
+          console.log(`✅ 字体 ${fontFamily} 已加载`);
+          clearTimeout(timeoutId);
+          callCallback();
+        } else {
+          // 如果字体未加载，继续等待
+          const elapsed = Date.now() - startTime;
+          if (elapsed < maxWaitTime) {
+            // 每500ms检查一次
+            setTimeout(checkFont, 500);
           }
-          hasCalled = true;
-          callback();
-        }, 1000);
+        }
+      } catch (error) {
+        console.warn(`⚠️ 字体检测出错:`, error);
+        // 出错时也继续加载游戏
+        clearTimeout(timeoutId);
+        callCallback();
       }
     };
     
     // 等待字体加载完成
-    (document as any).fonts.ready.then(() => {
-      checkFont();
-    });
-    
-    // 如果 fonts.ready 已经完成，直接检查（延迟一点避免重复）
-    setTimeout(() => {
-      if (!hasCalled) {
+    try {
+      (document as any).fonts.ready.then(() => {
         checkFont();
-      }
-    }, 200);
+      }).catch((error: any) => {
+        console.warn(`⚠️ fonts.ready 出错:`, error);
+        clearTimeout(timeoutId);
+        callCallback();
+      });
+    } catch (error) {
+      console.warn(`⚠️ 无法访问 fonts API:`, error);
+      clearTimeout(timeoutId);
+      callCallback();
+    }
+    
+    // 立即检查一次（如果字体已经加载）
+    setTimeout(checkFont, 100);
   } else {
     // 不支持 Font Loading API，等待一段时间后继续
     console.log('⚠️ 浏览器不支持 Font Loading API，延迟加载游戏');
-    setTimeout(callback, 500);
+    clearTimeout(timeoutId);
+    setTimeout(callCallback, 500);
   }
 }
 
@@ -203,27 +217,23 @@ if (isMobile) {
     e.preventDefault();
   });
   
-  // 处理横竖屏切换（刷新游戏画布以适应新尺寸）
+  // 处理横竖屏切换（FIT 模式会自动保持宽高比并适应屏幕）
   window.addEventListener('orientationchange', () => {
     setTimeout(() => {
       const gameInstance = (window as any).game;
       if (gameInstance && gameInstance.scale) {
-        // 更新游戏尺寸以适应新的屏幕尺寸
-        const newWidth = window.innerWidth || document.documentElement.clientWidth || 1280;
-        const newHeight = window.innerHeight || document.documentElement.clientHeight || 720;
-        gameInstance.scale.resize(Math.max(newWidth, 800), Math.max(newHeight, 600));
+        // FIT 模式会自动调整，保持宽高比，尽可能铺满屏幕
+        gameInstance.scale.refresh();
       }
     }, 100);
   });
   
-  // 处理窗口大小变化（实时调整游戏尺寸以适应屏幕）
+  // 处理窗口大小变化（FIT 模式会自动保持宽高比并适应屏幕）
   window.addEventListener('resize', () => {
     const gameInstance = (window as any).game;
     if (gameInstance && gameInstance.scale) {
-      // 更新游戏尺寸以适应新的屏幕尺寸
-      const newWidth = window.innerWidth || document.documentElement.clientWidth || 1280;
-      const newHeight = window.innerHeight || document.documentElement.clientHeight || 720;
-      gameInstance.scale.resize(Math.max(newWidth, 800), Math.max(newHeight, 600));
+      // FIT 模式会自动调整，保持宽高比，尽可能铺满屏幕
+      gameInstance.scale.refresh();
     }
   });
 }
@@ -233,9 +243,8 @@ if (!isMobile) {
   window.addEventListener('resize', () => {
     const gameInstance = (window as any).game;
     if (gameInstance && gameInstance.scale) {
-      const newWidth = window.innerWidth || document.documentElement.clientWidth || 1280;
-      const newHeight = window.innerHeight || document.documentElement.clientHeight || 720;
-      gameInstance.scale.resize(Math.max(newWidth, 800), Math.max(newHeight, 600));
+      // FIT 模式会自动调整，保持宽高比，尽可能铺满屏幕
+      gameInstance.scale.refresh();
     }
   });
 }

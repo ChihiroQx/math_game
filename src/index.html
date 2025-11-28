@@ -16,7 +16,8 @@
         @font-face {
             font-family: 'HappyCotton';
             src: url('./assets/font/happy_cotton.ttf') format('truetype'),
-                 url('assets/font/happy_cotton.ttf') format('truetype');
+                 url('assets/font/happy_cotton.ttf') format('truetype'),
+                 url('/assets/font/happy_cotton.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
             font-display: swap; /* 优化字体加载性能 */
@@ -72,16 +73,16 @@
             /* 确保不被遮挡 */
             position: relative;
             z-index: 1;
-            /* 移除居中，让画布铺满容器 */
-            display: block;
+            /* 居中显示，让 Phaser FIT 模式自动处理缩放 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
             overflow: hidden;
         }
         
         canvas {
-            /* 移除圆角和阴影，让画布完全铺满 */
+            /* Phaser FIT 模式会自动缩放，保持宽高比，尽可能铺满 */
             display: block;
-            width: 100% !important;
-            height: 100% !important;
             /* 移动端优化 */
             touch-action: none; /* 禁用默认触摸行为 */
             -webkit-tap-highlight-color: transparent; /* 移除点击高亮 */

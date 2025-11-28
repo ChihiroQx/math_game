@@ -608,6 +608,9 @@ export default class GamePlayScene extends Phaser.Scene {
     dataManager.addCoins(1);
     console.log(`击杀怪物，获得1金币，当前金币：${dataManager.playerData.coins}`);
     
+    // 更新金币显示
+    this.updateScore();
+    
     // 无限模式下不检查胜利条件，一直出怪直到死亡
     if (!this.gameManager.isInfiniteMode) {
       // 检查是否所有怪物都被击败（胜利条件）
@@ -668,8 +671,8 @@ export default class GamePlayScene extends Phaser.Scene {
     topBar.fillStyle(0x000000, 0.5);
     topBar.fillRect(0, 0, width, 60);
     
-    // 得分
-    this.scoreText = this.add.text(20, 20, '得分: 0', {
+    // 金币数（击杀怪物数，每个怪物1金币）
+    this.scoreText = this.add.text(20, 20, '💰 金币: 0', {
       fontFamily: getTitleFont(),
       fontSize: '24px',
       color: '#FFD700'
@@ -1306,10 +1309,11 @@ export default class GamePlayScene extends Phaser.Scene {
   }
   
   /**
-   * 更新得分
+   * 更新金币数（显示击杀怪物数，每个怪物1金币）
    */
   private updateScore(): void {
-    this.scoreText.setText(`得分: ${this.gameManager.currentScore}`);
+    // 显示击杀怪物数作为金币数
+    this.scoreText.setText(`💰 金币: ${this.totalMonstersDefeated}`);
   }
   
   /**
@@ -1426,12 +1430,16 @@ export default class GamePlayScene extends Phaser.Scene {
     }
     
     // 跳转到结算场景
+    // 普通模式：金币数 = 击杀怪物数（每个怪物1金币）
+    const coinsEarned = this.totalMonstersDefeated;
+    
     this.scene.start('GameOverScene', {
       victory,
-      score: score,
+      score: coinsEarned, // 使用击杀怪物数作为金币数
       stars: stars,
       correct: this.gameManager.correctAnswers,
-      total: this.gameManager.correctAnswers + this.gameManager.wrongAnswers
+      total: this.gameManager.correctAnswers + this.gameManager.wrongAnswers,
+      killCount: this.totalMonstersDefeated // 也传递击杀数，方便显示
     });
   }
   
