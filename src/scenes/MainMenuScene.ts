@@ -4,6 +4,7 @@ import AudioManager from '../managers/AudioManager';
 import ButtonFactory from '../utils/ButtonFactory';
 import DOMUtils from '../utils/DOMUtils';
 import { LeaderboardManager } from '../managers/LeaderboardManager';
+import { AccountManager } from '../managers/AccountManager';
 import NetworkUtils from '../utils/NetworkUtils';
 import { getTitleFont, getBodyFont } from '../config/FontConfig';
 
@@ -21,6 +22,14 @@ export default class MainMenuScene extends Phaser.Scene {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
     
+    // 检查登录状态
+    const accountManager = AccountManager.getInstance();
+    if (!accountManager.isLoggedIn()) {
+      // 未登录，跳转到登录场景
+      this.scene.start('LoginScene');
+      return;
+    }
+    
     // 背景渐变
     this.createBackground();
     
@@ -33,8 +42,11 @@ export default class MainMenuScene extends Phaser.Scene {
     // 玩家信息
     this.createPlayerInfo(width, height);
     
-    // 总玩家数量（异步加载）
+    // 总玩家数量（异步加载，离线模式下不显示）
     this.createTotalPlayerCount(width);
+    
+    // 切换账号按钮
+    this.createSwitchAccountButton(width, height);
     
     // 菜单按钮
     this.createMenuButtons(width, height);
@@ -311,18 +323,66 @@ export default class MainMenuScene extends Phaser.Scene {
   }
   
   /**
+   * 创建切换账号按钮
+   */
+  private createSwitchAccountButton(width: number, height: number): void {
+    const accountManager = AccountManager.getInstance();
+    
+    // 切换账号按钮（左上角，在玩家名字卡片下方）
+    // 玩家名字卡片：X=20, Y=20, 宽度=200, 高度=50
+    // 按钮中心与卡片中心对齐，放在卡片下方
+    const switchAccountBtn = ButtonFactory.createButton(this, {
+      x: 20 + 100, // 玩家名字卡片中心 X (20 + 200/2)
+      y: 20 + 50 + 10 + 22.5, // 玩家名字卡片底部 + 间距 + 按钮高度的一半
+      width: 160,
+      height: 45,
+      text: '切换账号',
+      icon: '🔄',
+      color: 0x6C5CE7, // 紫色
+      fontSize: '24px',
+      strokeThickness: 3,
+      callback: async () => {
+        AudioManager.getInstance().playSFX('click');
+        // 确认对话框
+        const confirmed = confirm('确定要切换账号吗？当前账号数据将保存。');
+        if (confirmed) {
+          // 先保存当前账号数据到服务器
+          if (!accountManager.isOffline()) {
+            await accountManager.saveGameDataToServer();
+          }
+          // 登出当前账号
+          accountManager.logout();
+          // 跳转到登录界面
+          this.scene.start('LoginScene');
+        }
+      }
+    });
+    
+    // 添加悬停效果
+    switchAccountBtn.on('pointerover', () => {
+      switchAccountBtn.setScale(1.05);
+    });
+    switchAccountBtn.on('pointerout', () => {
+      switchAccountBtn.setScale(1);
+    });
+  }
+  
+  /**
    * 创建菜单按钮（使用统一的ButtonFactory）
    */
   private createMenuButtons(width: number, height: number): void {
     const startY = height * 0.42;
     const buttonSpacing = 90;
     
+    const accountManager = AccountManager.getInstance();
+    const isOffline = accountManager.isOffline();
+    
     // 按钮配置（文字、图标、颜色）
     const buttons = [
-      { text: '开始冒险', icon: '🎮', color: 0xFF69B4, delay: 0 },
-      { text: '皮肤商店', icon: '🎨', color: 0xFF1493, delay: 100 },
-      { text: '排行榜', icon: '🏆', color: 0xFFB6C1, delay: 200 },
-      { text: '设置', icon: '⚙️', color: 0xFFA0C8, delay: 300 }
+      { text: '开始冒险', icon: '🎮', color: 0xFF69B4, delay: 0, disabled: false },
+      { text: '皮肤商店', icon: '🎨', color: 0xFF1493, delay: 100, disabled: false },
+      { text: '排行榜', icon: '🏆', color: 0xFFB6C1, delay: 200, disabled: isOffline },
+      { text: '设置', icon: '⚙️', color: 0xFFA0C8, delay: 300, disabled: false }
     ];
     
     buttons.forEach((config, index) => {
@@ -333,24 +393,45 @@ export default class MainMenuScene extends Phaser.Scene {
                                      () => this.showSettings();
       
       // 使用统一的ButtonFactory
-      ButtonFactory.createButton(this, {
+      const button = ButtonFactory.createButton(this, {
         x: width / 2,
         y: y,
         width: 250,
         height: 54,
-        text: config.text,
+        text: config.disabled ? `${config.text} (离线不可用)` : config.text,
         icon: config.icon,
-        color: config.color,
+        color: config.disabled ? 0x757575 : config.color, // 禁用时使用灰色
         fontSize: '36px',
         strokeThickness: 4,
         delay: config.delay,
         animationDuration: 400,
         callback: () => {
+          if (config.disabled) {
+            alert('此功能需要网络连接，当前处于离线模式');
+            return;
+          }
           AudioManager.getInstance().playSFX('click');
           callback();
         }
       });
+      
+      // 如果禁用，降低透明度
+      if (config.disabled) {
+        button.setAlpha(0.5);
+      }
     });
+    
+    // 如果离线模式，显示提示
+    if (isOffline) {
+      const offlineHint = this.add.text(width / 2, height - 100, '⚠️ 离线模式：部分功能不可用', {
+        fontFamily: getBodyFont(),
+        fontSize: '20px',
+        color: '#FFD700',
+        stroke: '#000000',
+        strokeThickness: 4
+      });
+      offlineHint.setOrigin(0.5);
+    }
   }
   
   /**

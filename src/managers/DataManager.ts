@@ -104,7 +104,7 @@ export default class DataManager {
           highScore: 0,
           isCompleted: false
         });
-        this.saveData();
+        this.saveDataSync();
       }
     } catch (error) {
       console.error('数据加载失败', error);
@@ -113,13 +113,51 @@ export default class DataManager {
   }
   
   /**
-   * 保存数据
+   * 保存数据（同时保存到本地和服务器）
    */
-  public saveData(): void {
+  public async saveData(): Promise<void> {
+    try {
+      // 先保存到本地（作为备份）
+      const dataStr = JSON.stringify(this.playerData);
+      localStorage.setItem(DataManager.SAVE_KEY, dataStr);
+      console.log('数据保存到本地成功');
+
+      // 如果已登录且在线，保存到服务器
+      const { AccountManager } = await import('./AccountManager');
+      const accountManager = AccountManager.getInstance();
+      if (accountManager.isLoggedIn() && !accountManager.isOffline()) {
+        const success = await accountManager.saveGameDataToServer();
+        if (success) {
+          console.log('数据保存到服务器成功');
+        } else {
+          console.warn('数据保存到服务器失败，已保存到本地');
+        }
+      }
+    } catch (error) {
+      console.error('数据保存失败', error);
+    }
+  }
+  
+  /**
+   * 同步保存数据（不等待服务器响应）
+   */
+  public saveDataSync(): void {
     try {
       const dataStr = JSON.stringify(this.playerData);
       localStorage.setItem(DataManager.SAVE_KEY, dataStr);
-      console.log('数据保存成功');
+      console.log('数据保存到本地成功');
+      
+      // 异步保存到服务器（不阻塞）
+      import('./AccountManager').then(({ AccountManager }) => {
+        const accountManager = AccountManager.getInstance();
+        if (accountManager.isLoggedIn() && !accountManager.isOffline()) {
+          accountManager.saveGameDataToServer().catch(error => {
+            console.warn('数据保存到服务器失败:', error);
+          });
+        }
+      }).catch(error => {
+        console.warn('加载AccountManager失败:', error);
+      });
     } catch (error) {
       console.error('数据保存失败', error);
     }
@@ -130,7 +168,7 @@ export default class DataManager {
    */
   public addCoins(amount: number): void {
     this.playerData.coins += amount;
-    this.saveData();
+    this.saveDataSync(); // 使用同步版本，避免阻塞
   }
   
   /**
@@ -139,7 +177,7 @@ export default class DataManager {
   public spendCoins(amount: number): boolean {
     if (this.playerData.coins >= amount) {
       this.playerData.coins -= amount;
-      this.saveData();
+      this.saveDataSync(); // 使用同步版本，避免阻塞
       return true;
     }
     return false;
@@ -183,7 +221,7 @@ export default class DataManager {
     
     // 解锁下一关
     this.unlockNextLevel(world, level);
-    this.saveData();
+    this.saveDataSync();
   }
   
   /**
@@ -288,7 +326,7 @@ export default class DataManager {
     // 添加到拥有列表
     this.playerData.ownedCharacters.push(characterId);
     
-    this.saveData();
+    this.saveDataSync();
     return true;
   }
   
@@ -307,7 +345,7 @@ export default class DataManager {
     // 只能装备已拥有的角色
     if (this.isCharacterOwned(characterId)) {
       this.playerData.currentCharacter = characterId;
-      this.saveData();
+      this.saveDataSync();
     }
   }
   
@@ -318,7 +356,7 @@ export default class DataManager {
     // 兼容旧数据
     if (!this.playerData.currentCharacter) {
       this.playerData.currentCharacter = 'mage_307';
-      this.saveData();
+      this.saveDataSync();
     }
     return this.playerData.currentCharacter;
   }
@@ -360,7 +398,7 @@ export default class DataManager {
       this.playerData.infiniteModeRecords.push(...toKeep);
     }
     
-    this.saveData();
+    this.saveDataSync();
   }
   
   /**

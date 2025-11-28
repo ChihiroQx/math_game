@@ -16,7 +16,7 @@ export default class BootScene extends Phaser.Scene {
   
   create(): void {
     console.log('BootScene: 启动完成');
-    // 进入预加载场景
-    this.scene.start('PreloadScene');
+    // 进入登录场景（登录场景会处理自动登录）
+    this.scene.start('LoginScene');
   }
 }

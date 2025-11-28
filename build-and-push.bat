@@ -35,7 +35,7 @@ git status
 echo.
 echo [4/5] 提交更改...
 echo.
-git commit -m "更新游戏代码和构建文件 - %date% %time%"
+git commit -m "构建部署 - %date% %time%"
 
 echo.
 echo [5/5] 推送到 GitHub...

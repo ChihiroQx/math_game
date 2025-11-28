@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import BootScene from './scenes/BootScene';
+import LoginScene from './scenes/LoginScene';
 import PreloadScene from './scenes/PreloadScene';
 import MainMenuScene from './scenes/MainMenuScene';
 import WorldMapScene from './scenes/WorldMapScene';
@@ -55,6 +56,7 @@ const config: Phaser.Types.Core.GameConfig = {
   }),
   scene: [
     BootScene,
+    LoginScene, // 登录场景
     PreloadScene,
     MainMenuScene,
     WorldMapScene,
