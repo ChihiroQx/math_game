@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import DataManager from '../managers/DataManager';
 import ButtonFactory from '../utils/ButtonFactory';
 import { LeaderboardManager } from '../managers/LeaderboardManager';
+import { getTitleFont, getBodyFont, getNumberFont } from '../config/FontConfig';
 
 /**
  * 排行榜场景 - 统一UI设计（使用ButtonFactory）
@@ -102,7 +103,7 @@ export default class LeaderboardScene extends Phaser.Scene {
     titleBg.fillRoundedRect(width / 2 - 200, 35, 400, 70, 15);
     
     const title = this.add.text(width / 2, 70, '🏆 排行榜', {
-      fontFamily: 'Arial Black, Microsoft YaHei',
+      fontFamily: getTitleFont(),
       fontSize: '56px',
       color: '#FFD700',
       stroke: '#FF69B4',
@@ -160,7 +161,7 @@ export default class LeaderboardScene extends Phaser.Scene {
     // 排行榜说明
     const infoText = this.add.text(width / 2, 150, 
       isOnline ? '🌐 全球排行榜（所有玩家）' : '💻 本地排行榜（同一设备上的记录）', {
-      fontFamily: 'Microsoft YaHei',
+      fontFamily: getBodyFont(),
       fontSize: '20px',
       color: '#FFFFFF',
       stroke: '#000000',
@@ -179,7 +180,7 @@ export default class LeaderboardScene extends Phaser.Scene {
     let loadingText: Phaser.GameObjects.Text | null = null;
     if (isOnline) {
       loadingText = this.add.text(width / 2, 200, '加载中...', {
-        fontFamily: 'Microsoft YaHei',
+        fontFamily: getBodyFont(),
         fontSize: '18px',
         color: '#FFFFFF',
         stroke: '#000000',
@@ -228,7 +229,7 @@ export default class LeaderboardScene extends Phaser.Scene {
     if (leaderboard.length === 0) {
       // 没有数据时显示提示
       const emptyText = this.add.text(width / 2, height / 2, '暂无排名记录\n快去完成关卡吧！', {
-        fontFamily: 'Microsoft YaHei',
+        fontFamily: getBodyFont(),
         fontSize: '28px',
         color: '#ffffff',
         align: 'center',
@@ -260,7 +261,7 @@ export default class LeaderboardScene extends Phaser.Scene {
         
         // 排名
         const medalText = this.add.text(width * 0.12, y, medal, {
-          fontFamily: 'Arial Black',
+          fontFamily: getTitleFont(),
           fontSize: '28px',
           color: '#ffffff',
           stroke: '#000000',
@@ -271,7 +272,7 @@ export default class LeaderboardScene extends Phaser.Scene {
         
         // 玩家名（添加黑色描边和阴影）
         this.add.text(width * 0.25, y - 15, entry.name, {
-          fontFamily: 'Microsoft YaHei',
+          fontFamily: getBodyFont(),
           fontSize: '22px',
           color: '#ffffff',
           fontStyle: 'bold',
@@ -289,7 +290,7 @@ export default class LeaderboardScene extends Phaser.Scene {
         // 通关进度（在名字下方，改为白色加描边）
         if (entry.maxLevel) {
           this.add.text(width * 0.25, y + 12, `📖 ${entry.maxLevel}`, {
-            fontFamily: 'Microsoft YaHei',
+            fontFamily: getBodyFont(),
             fontSize: '16px',
             color: '#FFFFFF',
             stroke: '#000000',
@@ -299,7 +300,7 @@ export default class LeaderboardScene extends Phaser.Scene {
         
         // 星星数（白色文字加描边）
         const starText = this.add.text(width * 0.60, y, `⭐${entry.stars}`, {
-          fontFamily: 'Arial',
+          fontFamily: getNumberFont(),
           fontSize: '22px',
           color: '#FFFFFF',
           stroke: '#000000',
@@ -311,7 +312,7 @@ export default class LeaderboardScene extends Phaser.Scene {
         
         // 金币数（白色文字加描边）
         const coinText1 = this.add.text(width * 0.80, y, `💰${entry.coins}`, {
-          fontFamily: 'Arial',
+          fontFamily: getNumberFont(),
           fontSize: '22px',
           color: '#FFFFFF',
           stroke: '#000000',
@@ -329,7 +330,7 @@ export default class LeaderboardScene extends Phaser.Scene {
     playerBg.setStrokeStyle(3, 0xFFFFFF);
     
     this.add.text(width * 0.15, playerY, '你', {
-      fontFamily: 'Microsoft YaHei',
+      fontFamily: getBodyFont(),
       fontSize: '28px',
       color: '#ffffff',
       fontStyle: 'bold',
@@ -345,7 +346,7 @@ export default class LeaderboardScene extends Phaser.Scene {
     }).setOrigin(0.5);
     
     this.add.text(width * 0.35, playerY, data.playerName, {
-      fontFamily: 'Microsoft YaHei',
+      fontFamily: getBodyFont(),
       fontSize: '24px',
       color: '#ffffff',
       fontStyle: 'bold',
@@ -361,7 +362,7 @@ export default class LeaderboardScene extends Phaser.Scene {
     }).setOrigin(0, 0.5);
     
     const starText2 = this.add.text(width * 0.65, playerY, `⭐ ${data.totalStars}`, {
-      fontFamily: 'Arial',
+      fontFamily: getNumberFont(),
       fontSize: '24px',
       color: '#FFFFFF',
       fontStyle: 'bold',
@@ -372,7 +373,7 @@ export default class LeaderboardScene extends Phaser.Scene {
     starText2.setPadding(4, 4, 4, 4);
     
     const coinText2 = this.add.text(width * 0.85, playerY, `💰 ${data.coins}`, {
-      fontFamily: 'Arial',
+      fontFamily: getNumberFont(),
       fontSize: '24px',
       color: '#FFFFFF',
       fontStyle: 'bold',

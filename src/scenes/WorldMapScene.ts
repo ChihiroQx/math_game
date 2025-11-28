@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import DataManager from '../managers/DataManager';
 import GameManager from '../managers/GameManager';
 import ButtonFactory from '../utils/ButtonFactory';
+import { getTitleFont } from '../config/FontConfig';
 
 /**
  * 世界地图场景 - 全新设计（使用ButtonFactory）
@@ -105,7 +106,7 @@ export default class WorldMapScene extends Phaser.Scene {
     
     // 标题
     const title = this.add.text(width / 2, 60, '选择关卡', {
-      fontFamily: 'Arial Black, Microsoft YaHei',
+      fontFamily: getTitleFont(),
       fontSize: '56px',
       color: '#FFD700',
       stroke: '#FF69B4',
@@ -169,7 +170,7 @@ export default class WorldMapScene extends Phaser.Scene {
       // 世界标题
       const worldTitle = this.getWorldTitle(world);
       const worldText = this.add.text(width / 2, yOffset, worldTitle, {
-        fontFamily: 'Arial Black, Microsoft YaHei',
+        fontFamily: getTitleFont(),
         fontSize: '36px',
         color: '#FFD700',
         stroke: '#FF69B4',
@@ -289,7 +290,7 @@ export default class WorldMapScene extends Phaser.Scene {
     
     // 关卡编号
     const levelText = this.add.text(0, 0, `${level}`, {
-      fontFamily: 'Arial Black',
+      fontFamily: getTitleFont(),
       fontSize: '42px',
       color: isUnlocked ? '#000000' : '#444444',
       stroke: isUnlocked ? '#FFFFFF' : '#222222',

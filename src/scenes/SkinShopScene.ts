@@ -3,6 +3,7 @@ import DataManager from '../managers/DataManager';
 import ResourceManager from '../managers/ResourceManager';
 import ButtonFactory from '../utils/ButtonFactory';
 import { CHARACTERS, CharacterData, getAllCharacters, extractFolderFromAssetPath } from '../config/CharacterConfig';
+import { getTitleFont, getBodyFont } from '../config/FontConfig';
 
 /**
  * 皮肤商店场景
@@ -226,7 +227,7 @@ export default class SkinShopScene extends Phaser.Scene {
     titleBg.fillRoundedRect(width / 2 - 200, 35, 400, 70, 15);
     
     const title = this.add.text(width / 2, 70, '🎨 皮肤商店', {
-      fontFamily: 'Arial Black, Microsoft YaHei',
+      fontFamily: getTitleFont(),
       fontSize: '56px',
       color: '#FFD700',
       stroke: '#FF69B4',
@@ -282,7 +283,7 @@ export default class SkinShopScene extends Phaser.Scene {
     coinCardBg.fillRoundedRect(width - 200, 50, 180, 50, 25);
     
     const coinText = this.add.text(width - 110, 75, `💰 ${data.coins}`, {
-      fontFamily: 'Arial Black, Microsoft YaHei',
+      fontFamily: getTitleFont(),
       fontSize: '28px',
       color: '#FFD700',
       stroke: '#8B4513',
@@ -311,7 +312,7 @@ export default class SkinShopScene extends Phaser.Scene {
     container.add(placeholder);
     
     const loadingText = this.add.text(80, height - 20, '加载中...', {
-      fontFamily: 'Arial, Microsoft YaHei',
+      fontFamily: getBodyFont(),
       fontSize: '12px',
       color: '#FFFFFF'
     });
@@ -413,7 +414,7 @@ export default class SkinShopScene extends Phaser.Scene {
     // 称号-名字（适中的描边和阴影）
     const fullName = `${character.title}-${character.name}`;
     const nameText = this.add.text(160, 22, fullName, {
-      fontFamily: 'Arial Black, Microsoft YaHei',
+      fontFamily: getTitleFont(),
       fontSize: '22px',
       color: character.color,
       stroke: '#000000',
@@ -431,7 +432,7 @@ export default class SkinShopScene extends Phaser.Scene {
     
     // 角色描述 - 细描边+阴影
     const descText = this.add.text(160, 57, character.description, {
-      fontFamily: 'Arial, Microsoft YaHei',
+      fontFamily: getBodyFont(),
       fontSize: '16px',
       fontStyle: 'bold',
       color: '#FFFFFF',
@@ -455,7 +456,7 @@ export default class SkinShopScene extends Phaser.Scene {
     if (isEquipped) {
       // 当前使用
       const equippedText = this.add.text(width / 2, buttonY, '✓ 使用中', {
-        fontFamily: 'Arial Black, Microsoft YaHei',
+        fontFamily: getTitleFont(),
         fontSize: '20px',
         color: '#FFD700',
         stroke: '#000000',
@@ -484,7 +485,7 @@ export default class SkinShopScene extends Phaser.Scene {
       // 未拥有，显示价格
       if (character.isDefault) {
         const freeText = this.add.text(width / 2, buttonY, '免费', {
-          fontFamily: 'Arial Black, Microsoft YaHei',
+          fontFamily: getTitleFont(),
           fontSize: '20px',
           color: '#27AE60',
           stroke: '#000000',
@@ -562,7 +563,7 @@ export default class SkinShopScene extends Phaser.Scene {
     messageBg.setDepth(1000);
     
     const messageText = this.add.text(width / 2, height / 2, text, {
-      fontFamily: 'Arial Black, Microsoft YaHei',
+      fontFamily: getTitleFont(),
       fontSize: '32px',
       color: '#ffffff',
       stroke: '#000000',

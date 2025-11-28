@@ -3,6 +3,7 @@ import DataManager from '../managers/DataManager';
 import AudioManager from '../managers/AudioManager';
 import ButtonFactory from '../utils/ButtonFactory';
 import DOMUtils from '../utils/DOMUtils';
+import { getTitleFont, getBodyFont } from '../config/FontConfig';
 
 /**
  * 主菜单场景 - 全新设计（使用ButtonFactory）
@@ -113,7 +114,7 @@ export default class MainMenuScene extends Phaser.Scene {
     
     // 主标题
     const title = this.add.text(width / 2, height * 0.15, '数学童话冒险', {
-      fontFamily: 'Arial Black, Microsoft YaHei',
+      fontFamily: getTitleFont(),
       fontSize: '72px',
       color: '#FFD700',
       stroke: '#FF1493',
@@ -150,7 +151,7 @@ export default class MainMenuScene extends Phaser.Scene {
     
     // 副标题
     const subtitle = this.add.text(width / 2, height * 0.23, '🎮 通过答题击败怪物，保卫你的角色！⚔️', {
-      fontFamily: 'Microsoft YaHei',
+      fontFamily: getBodyFont(),
       fontSize: '26px',
       color: '#ffffff',
       stroke: '#FF69B4',
@@ -191,7 +192,7 @@ export default class MainMenuScene extends Phaser.Scene {
     
     const displayName = data.playerName || '未设置';
     const nameText = this.add.text(30, 45, `👑 ${displayName}`, {
-      fontFamily: 'Microsoft YaHei',
+      fontFamily: getBodyFont(),
       fontSize: '24px',
       color: '#ffffff',
       stroke: '#000000',
@@ -212,7 +213,7 @@ export default class MainMenuScene extends Phaser.Scene {
     coinCardBg.fillRoundedRect(width - 180, 20, 160, 50, 25);
     
     const coinText = this.add.text(width - 90, 45, `💰 ${data.coins}`, {
-      fontFamily: 'Arial Black, Microsoft YaHei',
+      fontFamily: getTitleFont(),
       fontSize: '24px',
       color: '#FFD700',
       stroke: '#8B4513',
@@ -234,7 +235,7 @@ export default class MainMenuScene extends Phaser.Scene {
     starCardBg.fillRoundedRect(width - 180, 85, 160, 50, 25);
     
     const starText = this.add.text(width - 90, 110, `⭐ ${data.totalStars}`, {
-      fontFamily: 'Arial Black, Microsoft YaHei',
+      fontFamily: getTitleFont(),
       fontSize: '24px',
       color: '#FFA500',
       stroke: '#8B4513',
@@ -304,7 +305,7 @@ export default class MainMenuScene extends Phaser.Scene {
     
     // 版本信息
     const versionText = this.add.text(width / 2, height - 25, '专为小朋友设计的数学学习游戏 ❤️', {
-      fontFamily: 'Microsoft YaHei',
+      fontFamily: getBodyFont(),
       fontSize: '18px',
       color: '#ffffff',
       stroke: '#FF69B4',
@@ -394,7 +395,7 @@ export default class MainMenuScene extends Phaser.Scene {
     
     // 标题
     const titleText = this.add.text(width / 2, height / 2 - 100, '欢迎来到数学冒险！', {
-      fontFamily: 'Microsoft YaHei',
+      fontFamily: getTitleFont(),
       fontSize: '28px',
       color: '#FF69B4',
       fontStyle: 'bold'
@@ -404,7 +405,7 @@ export default class MainMenuScene extends Phaser.Scene {
     
     // 提示文本
     const promptText = this.add.text(width / 2, height / 2 - 50, '请输入你的名字：', {
-      fontFamily: 'Microsoft YaHei',
+      fontFamily: getBodyFont(),
       fontSize: '22px',
       color: '#333333'
     });

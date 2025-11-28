@@ -8,6 +8,7 @@ import ResourceManager from '../managers/ResourceManager';
 import { Monster } from '../entities/Monster';
 import { Princess } from '../entities/Princess';
 import ButtonFactory from '../utils/ButtonFactory';
+import { getTitleFont, getBodyFont, getNumberFont } from '../config/FontConfig';
 
 /**
  * 游戏玩法场景 - 战斗版本（使用ButtonFactory）
@@ -32,6 +33,11 @@ export default class GamePlayScene extends Phaser.Scene {
   private gameEnded: boolean = false; // 防止重复结算
   private maxMonsters: number = 5; // 最大怪物数量限制（根据关卡设置）
   private totalMonstersDefeated: number = 0; // 已击败的怪物总数
+  
+  // 刷怪定时器相关
+  private waveSpawnInterval: number = 10000; // 固定刷怪间隔（10秒，单位：毫秒）
+  private nextWaveTimer!: Phaser.Time.TimerEvent | null; // 下一波刷怪定时器
+  private timeAdvancement: number = 0; // 时间提前量（毫秒），用于提前刷怪时调整后续波次
   
   // UI元素
   private questionText!: Phaser.GameObjects.Text;
@@ -67,6 +73,11 @@ export default class GamePlayScene extends Phaser.Scene {
     this.activeMonsters = [];
     this.monsters = [];
     this.answerButtons = [];
+    this.timeAdvancement = 0; // 重置时间提前量
+    if (this.nextWaveTimer) {
+      this.nextWaveTimer.destroy();
+      this.nextWaveTimer = null;
+    }
     
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
@@ -91,6 +102,9 @@ export default class GamePlayScene extends Phaser.Scene {
     
     await this.createMonsters();
     this.spawnNextWave();
+    
+    // 启动固定间隔刷怪定时器
+    this.scheduleNextWave();
     
     // 开始计时
     this.timerManager.startTimer();
@@ -405,6 +419,73 @@ export default class GamePlayScene extends Phaser.Scene {
     }
     
     this.updateWaveText();
+    
+    // 刷怪后安排下一波（如果还没有安排）
+    if (!this.nextWaveTimer && this.totalMonstersDefeated < this.maxMonsters) {
+      this.scheduleNextWave();
+    }
+  }
+  
+  /**
+   * 安排下一波刷怪定时器
+   */
+  private scheduleNextWave(): void {
+    // 清除之前的定时器
+    if (this.nextWaveTimer) {
+      this.nextWaveTimer.destroy();
+      this.nextWaveTimer = null;
+    }
+    
+    // 如果游戏已结束或已达到最大怪物数，不再安排
+    if (this.gameEnded || this.totalMonstersDefeated >= this.maxMonsters) {
+      return;
+    }
+    
+    // 计算实际间隔（考虑提前量）
+    const actualInterval = Math.max(1000, this.waveSpawnInterval - this.timeAdvancement);
+    
+    // 创建定时器
+    this.nextWaveTimer = this.time.delayedCall(actualInterval, () => {
+      if (!this.gameEnded && this.totalMonstersDefeated < this.maxMonsters) {
+        // 检查场上是否还有怪物，如果有则正常刷怪，如果没有则说明已经被提前刷了
+        const aliveMonsters = this.activeMonsters.filter(m => m.isAlive);
+        if (aliveMonsters.length > 0) {
+          // 正常刷怪，重置提前量
+          this.timeAdvancement = 0;
+          this.spawnNextWave();
+        } else {
+          // 已经被提前刷了，重置提前量并安排下一波
+          this.timeAdvancement = 0;
+          this.scheduleNextWave();
+        }
+      }
+    });
+  }
+  
+  /**
+   * 提前刷下一波怪物（当场上怪物全部被击败时）
+   */
+  private spawnNextWaveEarly(): void {
+    // 如果游戏已结束或已达到最大怪物数，不再刷怪
+    if (this.gameEnded || this.totalMonstersDefeated >= this.maxMonsters) {
+      return;
+    }
+    
+    // 计算提前的时间
+    if (this.nextWaveTimer) {
+      const remainingTime = this.nextWaveTimer.getRemainingSeconds() * 1000;
+      this.timeAdvancement = remainingTime; // 记录提前的时间
+      
+      // 清除当前定时器
+      this.nextWaveTimer.destroy();
+      this.nextWaveTimer = null;
+    }
+    
+    // 立即刷下一波
+    this.spawnNextWave();
+    
+    // 安排下一波（使用提前量调整）
+    this.scheduleNextWave();
   }
   
   /**
@@ -440,26 +521,36 @@ export default class GamePlayScene extends Phaser.Scene {
       this.princess.takeDamage(monster.damage);
       this.audioManager.playSFX('wrong');
       
-      // 显示伤害提示
+      // 显示伤害提示（增强可见性）
       const damageText = this.add.text(
         this.princess.sprite.x,
-        this.princess.sprite.y - 50,
+        this.princess.sprite.y - 60,
         `-${monster.damage}`,
         {
-          fontFamily: 'Arial Black',
-          fontSize: '32px',
-          color: '#FF0000',
-          stroke: '#FFFFFF',
-          strokeThickness: 4
+          fontFamily: getTitleFont(),
+          fontSize: '56px', // 增大字体
+          color: '#FF0000', // 红色
+          stroke: '#FFFFFF', // 白色描边
+          strokeThickness: 10, // 加粗描边
+          shadow: {
+            offsetX: 3,
+            offsetY: 3,
+            color: '#000000',
+            blur: 8,
+            fill: true
+          }
         }
       );
       damageText.setOrigin(0.5);
+      damageText.setDepth(1000); // 确保在最上层
       
       this.tweens.add({
         targets: damageText,
-        y: damageText.y - 50,
+        y: damageText.y - 80, // 上浮更远
+        scale: { from: 1, to: 1.4 }, // 放大效果
         alpha: 0,
-        duration: 1000,
+        duration: 1200, // 延长显示时间
+        ease: 'Power2',
         onComplete: () => damageText.destroy()
       });
     });
@@ -488,29 +579,25 @@ export default class GamePlayScene extends Phaser.Scene {
       return;
     }
     
-    // 如果还需要生成更多怪物，尝试补充
-    const needMoreMonsters = this.totalMonstersDefeated < this.maxMonsters;
-    const shouldSpawn = this.activeMonsters.length < 2 && needMoreMonsters;
+    // 检查场上是否还有怪物
+    const aliveMonsters = this.activeMonsters.filter(m => m.isAlive);
     
-    if (shouldSpawn) {
-      // 如果怪物池不足，动态添加新怪物（但不超过最大数量）
-      if (this.currentMonsterIndex >= this.monsters.length) {
-        const remainingToSpawn = this.maxMonsters - this.totalMonstersDefeated;
-        const toAdd = Math.min(3, remainingToSpawn); // 一次最多添加3只
-        for (let i = 0; i < toAdd; i++) {
-          // 异步添加怪物（不等待，避免阻塞）
-          this.addNewMonster().catch(error => {
-            console.error('添加怪物失败:', error);
-          });
-        }
+    // 如果场上怪物全部被击败，提前刷下一波
+    if (aliveMonsters.length === 0 && this.totalMonstersDefeated < this.maxMonsters) {
+      this.spawnNextWaveEarly();
+    }
+    
+    // 如果还需要生成更多怪物，尝试补充怪物池
+    const needMoreMonsters = this.totalMonstersDefeated < this.maxMonsters;
+    if (needMoreMonsters && this.currentMonsterIndex >= this.monsters.length) {
+      const remainingToSpawn = this.maxMonsters - this.totalMonstersDefeated;
+      const toAdd = Math.min(3, remainingToSpawn); // 一次最多添加3只
+      for (let i = 0; i < toAdd; i++) {
+        // 异步添加怪物（不等待，避免阻塞）
+        this.addNewMonster().catch(error => {
+          console.error('添加怪物失败:', error);
+        });
       }
-      
-      // 生成新一波
-      this.time.delayedCall(500, () => {
-        if (this.currentMonsterIndex < this.monsters.length && !this.gameEnded) {
-          this.spawnNextWave();
-        }
-      });
     }
   }
   
@@ -533,14 +620,14 @@ export default class GamePlayScene extends Phaser.Scene {
     
     // 得分
     this.scoreText = this.add.text(20, 20, '得分: 0', {
-      fontFamily: 'Arial Black, Microsoft YaHei',
+      fontFamily: getTitleFont(),
       fontSize: '24px',
       color: '#FFD700'
     });
     
     // 进度（隐藏，不再显示）
     this.progressText = this.add.text(width / 2, 20, '', {
-      fontFamily: 'Arial Black, Microsoft YaHei',
+      fontFamily: getTitleFont(),
       fontSize: '24px',
       color: '#ffffff'
     });
@@ -549,7 +636,7 @@ export default class GamePlayScene extends Phaser.Scene {
     
     // 计时器
     this.timerText = this.add.text(width - 20, 20, '', {
-      fontFamily: 'Arial Black, Microsoft YaHei',
+      fontFamily: getTitleFont(),
       fontSize: '24px',
       color: '#00FF00'
     });
@@ -557,7 +644,7 @@ export default class GamePlayScene extends Phaser.Scene {
     
     // 怪物信息（移到顶部中间，原题目标题位置）
     this.waveText = this.add.text(width / 2, 20, '', {
-      fontFamily: 'Arial Black, Microsoft YaHei',
+      fontFamily: getTitleFont(),
       fontSize: '22px', // 稍微放大
       color: '#FF69B4',
       stroke: '#000000',
@@ -572,7 +659,7 @@ export default class GamePlayScene extends Phaser.Scene {
     
     // 题目文字（上移位置）
     this.questionText = this.add.text(width / 2, 100, '', {
-      fontFamily: 'Arial Black, Microsoft YaHei',
+      fontFamily: getTitleFont(),
       fontSize: '40px',
       color: '#ffffff',
       stroke: '#000000',
@@ -687,7 +774,7 @@ export default class GamePlayScene extends Phaser.Scene {
     value: number
   ): Phaser.GameObjects.Text {
     const button = this.add.text(x, y, text, {
-      fontFamily: 'Arial Black, Microsoft YaHei',
+      fontFamily: getTitleFont(),
       fontSize: '40px', // 增大字体，更清晰
       color: '#ffffff',
       backgroundColor: '#FF69B4',
@@ -884,7 +971,7 @@ export default class GamePlayScene extends Phaser.Scene {
       this.cameras.main.height * 0.3,
       text,
       {
-        fontFamily: 'Arial Black, Microsoft YaHei',
+        fontFamily: getTitleFont(),
         fontSize: '36px',
         color: `#${color.toString(16).padStart(6, '0')}`,
         stroke: '#000000',
@@ -1016,7 +1103,7 @@ export default class GamePlayScene extends Phaser.Scene {
    */
   private createPauseButton(width: number, height: number): void {
     this.pauseButton = this.add.text(width - 20, 30, '⏸ 暂停', {
-      fontFamily: 'Arial, Microsoft YaHei',
+      fontFamily: getBodyFont(),
       fontSize: '24px',
       color: '#ffffff',
       backgroundColor: '#FF6B6B',
@@ -1076,7 +1163,7 @@ export default class GamePlayScene extends Phaser.Scene {
     
     // 标题
     const title = this.add.text(0, -150, '游戏暂停', {
-      fontFamily: 'Arial Black, Microsoft YaHei',
+      fontFamily: getTitleFont(),
       fontSize: '48px',
       color: '#ffffff',
       stroke: '#000000',

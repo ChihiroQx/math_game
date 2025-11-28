@@ -3,6 +3,7 @@ import QuestionManager from '../managers/QuestionManager';
 import AudioManager from '../managers/AudioManager';
 import ResourceManager from '../managers/ResourceManager';
 import { getAllCharacters } from '../config/CharacterConfig';
+import { getTitleFont, getBodyFont, getNumberFont } from '../config/FontConfig';
 
 /**
  * 预加载场景
@@ -249,7 +250,7 @@ export default class PreloadScene extends Phaser.Scene {
     
     // 加载百分比文字
     this.loadingText = this.add.text(width / 2, progressY + 35, '0%', {
-      fontFamily: 'Arial Black, Microsoft YaHei',
+      fontFamily: getNumberFont(),
       fontSize: '28px',
       color: '#FFD700',
       stroke: '#000000',
@@ -266,7 +267,7 @@ export default class PreloadScene extends Phaser.Scene {
     
     // 提示文字
     this.tipText = this.add.text(width / 2, progressY + 70, this.loadingTips[0], {
-      fontFamily: 'Arial, Microsoft YaHei',
+      fontFamily: getBodyFont(),
       fontSize: '20px',
       color: '#87CEEB',
       fontStyle: 'italic',
@@ -392,7 +393,7 @@ export default class PreloadScene extends Phaser.Scene {
    */
   private createTitle(width: number, height: number): void {
     const title = this.add.text(width / 2, height / 2 - 180, '数学冒险', {
-      fontFamily: 'Arial Black, Microsoft YaHei',
+      fontFamily: getTitleFont(),
       fontSize: '64px',
       color: '#FFD700',
       stroke: '#FF69B4',

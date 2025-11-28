@@ -44,19 +44,20 @@ export const ZCOOL_FONTS: FontConfig = {
 };
 
 /**
- * 阿里巴巴普惠体配置（使用本地字体文件）
+ * Happy Cotton 字体配置（使用本地字体文件）
+ * 适合儿童游戏的可爱字体
  */
-export const ALIBABA_FONTS: FontConfig = {
-  title: '"AlibabaPuHuiTi", "Microsoft YaHei", Arial, sans-serif',
-  body: '"AlibabaPuHuiTi", "Microsoft YaHei", Arial, sans-serif',
-  number: '"AlibabaPuHuiTi", Arial, monospace'
+export const HAPPY_COTTON_FONTS: FontConfig = {
+  title: '"HappyCotton", "Microsoft YaHei", Arial, sans-serif',
+  body: '"HappyCotton", "Microsoft YaHei", Arial, sans-serif',
+  number: '"HappyCotton", Arial, monospace'
 };
 
 /**
  * 当前使用的字体配置
  * 可以在这里切换不同的字体方案
  */
-export const CURRENT_FONTS: FontConfig = ALIBABA_FONTS;
+export const CURRENT_FONTS: FontConfig = HAPPY_COTTON_FONTS;
 
 /**
  * 获取标题字体

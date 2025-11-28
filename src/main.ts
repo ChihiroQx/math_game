@@ -65,8 +65,102 @@ const config: Phaser.Types.Core.GameConfig = {
   ]
 };
 
-// 创建游戏实例
-const game = new Phaser.Game(config);
+// 防止重复创建游戏实例
+let gameInstance: Phaser.Game | null = null;
+let isCreatingGame = false;
+
+// 等待字体加载完成
+function waitForFont(fontFamily: string, callback: () => void) {
+  // 如果游戏已经创建，不再重复创建
+  if (gameInstance || isCreatingGame) {
+    console.log('游戏实例已存在或正在创建，跳过');
+    return;
+  }
+  
+  if ('fonts' in document) {
+    let hasCalled = false; // 防止重复调用 callback
+    
+    // 使用 Font Loading API 检测字体
+    const checkFont = () => {
+      if (hasCalled) return; // 防止重复调用
+      
+      // document.fonts.check() 返回布尔值，不是 Promise
+      const loaded = (document as any).fonts.check(`12px "${fontFamily}"`);
+      
+      if (loaded) {
+        console.log(`✅ 字体 ${fontFamily} 已加载`);
+        hasCalled = true;
+        callback();
+      } else if (!hasCalled) {
+        // 如果字体未加载，等待一段时间后重试
+        console.log(`⏳ 等待字体 ${fontFamily} 加载...`);
+        setTimeout(() => {
+          if (hasCalled) return; // 防止重复调用
+          
+          const retryLoaded = (document as any).fonts.check(`12px "${fontFamily}"`);
+          if (retryLoaded) {
+            console.log(`✅ 字体 ${fontFamily} 已加载（重试成功）`);
+          } else {
+            console.warn(`⚠️ 字体 ${fontFamily} 未加载，使用备用字体`);
+          }
+          hasCalled = true;
+          callback();
+        }, 1000);
+      }
+    };
+    
+    // 等待字体加载完成
+    (document as any).fonts.ready.then(() => {
+      checkFont();
+    });
+    
+    // 如果 fonts.ready 已经完成，直接检查（延迟一点避免重复）
+    setTimeout(() => {
+      if (!hasCalled) {
+        checkFont();
+      }
+    }, 200);
+  } else {
+    // 不支持 Font Loading API，等待一段时间后继续
+    console.log('⚠️ 浏览器不支持 Font Loading API，延迟加载游戏');
+    setTimeout(callback, 500);
+  }
+}
+
+// 等待多个字体加载完成
+function waitForMultipleFonts(fontFamilies: string[], callback: () => void) {
+  let loadedCount = 0;
+  const totalFonts = fontFamilies.length;
+  
+  fontFamilies.forEach(fontFamily => {
+    waitForFont(fontFamily, () => {
+      loadedCount++;
+      if (loadedCount === totalFonts) {
+        callback();
+      }
+    });
+  });
+}
+
+// 创建游戏实例（等待字体加载）
+waitForMultipleFonts(['HappyCotton'], () => {
+  // 防止重复创建
+  if (gameInstance || isCreatingGame) {
+    console.log('游戏实例已存在或正在创建，跳过');
+    return;
+  }
+  
+  isCreatingGame = true;
+  console.log('开始创建游戏实例...');
+  
+  gameInstance = new Phaser.Game(config);
+  
+  // 将 game 实例暴露到全局，方便调试
+  (window as any).game = gameInstance;
+  
+  isCreatingGame = false;
+  console.log('游戏实例创建完成');
+});
 
 // 隐藏加载提示
 window.addEventListener('load', () => {
@@ -100,8 +194,9 @@ if (isMobile) {
     setTimeout(() => {
       // 只在横屏时刷新游戏画布
       const isPortrait = window.innerHeight > window.innerWidth;
-      if (!isPortrait && game && game.scale) {
-        game.scale.refresh();
+      const gameInstance = (window as any).game;
+      if (!isPortrait && gameInstance && gameInstance.scale) {
+        gameInstance.scale.refresh();
       }
     }, 100);
   });
@@ -109,8 +204,9 @@ if (isMobile) {
   // 处理窗口大小变化（移动端浏览器工具栏显示/隐藏，仅在横屏时）
   window.addEventListener('resize', () => {
     const isPortrait = window.innerHeight > window.innerWidth;
-    if (!isPortrait && game && game.scale) {
-      game.scale.refresh();
+    const gameInstance = (window as any).game;
+    if (!isPortrait && gameInstance && gameInstance.scale) {
+      gameInstance.scale.refresh();
     }
   });
 }

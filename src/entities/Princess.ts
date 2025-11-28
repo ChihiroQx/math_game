@@ -1,4 +1,5 @@
 import { getCharacterConfig, CharacterData } from '../config/CharacterConfig';
+import { getTitleFont, getNumberFont } from '../config/FontConfig';
 
 /**
  * 公主类（使用序列帧动画）
@@ -70,7 +71,7 @@ export class Princess {
     
     // 血量文字 - 放大字体
     this.healthText = scene.add.text(x, y + 14, '', {
-      fontFamily: 'Arial Black',
+      fontFamily: getNumberFont(),
       fontSize: '18px',
       color: '#ffffff',
       stroke: '#000000',
@@ -239,22 +240,31 @@ export class Princess {
           // 击中时播放爆炸特效
           this.createHitEffect(targetX, targetY);
           
-          // 显示伤害数字（使用角色颜色）
-          const damageText = this.scene.add.text(targetX, targetY - 30, `-${damage}`, {
-            fontFamily: 'Arial Black',
-            fontSize: '24px',
-            color: this.characterConfig.color,
-            stroke: '#FFFFFF',
-            strokeThickness: 4
+          // 显示伤害数字（使用角色颜色，增强可见性）
+          const damageText = this.scene.add.text(targetX, targetY - 40, `-${damage}`, {
+            fontFamily: getNumberFont(),
+            fontSize: '36px', // 增大字体
+            color: '#FF0000', // 使用红色
+            stroke: '#FFFFFF', // 白色描边，增强对比度
+            strokeThickness: 8, // 加粗描边
+            shadow: {
+              offsetX: 2,
+              offsetY: 2,
+              color: '#000000',
+              blur: 4,
+              fill: true
+            }
           });
           damageText.setOrigin(0.5);
+          damageText.setDepth(1000); // 确保在最上层
           
-          // 伤害数字上浮并消失
+          // 伤害数字上浮并消失（增强动画效果）
           this.scene.tweens.add({
             targets: damageText,
-            y: damageText.y - 50,
+            y: damageText.y - 80, // 上浮更远
+            scale: { from: 1, to: 1.5 }, // 放大效果
             alpha: 0,
-            duration: 800,
+            duration: 1200, // 延长显示时间
             ease: 'Power2',
             onComplete: () => {
               damageText.destroy();

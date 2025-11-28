@@ -12,11 +12,12 @@
     <meta name="x5-fullscreen" content="true">
     <title>数学童话冒险</title>
     <style>
-        /* 阿里巴巴普惠体字体定义 */
+        /* Happy Cotton 字体定义 */
         @font-face {
-            font-family: 'AlibabaPuHuiTi';
-            src: url('assets/font/AlibabaPuHuiTi-3-75-SemiBold.ttf') format('truetype');
-            font-weight: 600;
+            font-family: 'HappyCotton';
+            src: url('./assets/font/happy_cotton.ttf') format('truetype'),
+                 url('assets/font/happy_cotton.ttf') format('truetype');
+            font-weight: normal;
             font-style: normal;
             font-display: swap; /* 优化字体加载性能 */
         }
@@ -33,15 +34,34 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            font-family: 'AlibabaPuHuiTi', 'Microsoft YaHei', Arial, sans-serif;
+            font-family: 'HappyCotton', 'Microsoft YaHei', Arial, sans-serif;
             /* 移动端优化 */
             -webkit-touch-callout: none; /* 禁用长按菜单 */
             -webkit-user-select: none; /* 禁用文本选择 */
             user-select: none;
             touch-action: manipulation; /* 优化触摸响应 */
+            /* 使用固定定位，确保占满整个可视区域 */
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            /* 使用 CSS 变量存储动态高度 */
+            height: var(--vh, 100vh);
             /* 安全区域适配（刘海屏等） */
             padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+            /* 防止滚动 */
+            overflow: hidden;
+        }
+        
+        html {
+            /* 防止页面滚动 */
+            overflow: hidden;
+            height: 100%;
+            /* 使用 CSS 变量存储动态高度 */
+            height: var(--vh, 100vh);
         }
         
         #game-container {
@@ -49,7 +69,12 @@
             justify-content: center;
             align-items: center;
             width: 100%;
-            height: 100vh;
+            height: 100%;
+            /* 使用 CSS 变量存储动态高度 */
+            height: var(--vh, 100vh);
+            /* 确保不被遮挡 */
+            position: relative;
+            z-index: 1;
         }
         
         canvas {
@@ -101,7 +126,7 @@
         /* 横屏优化 */
         @media (orientation: landscape) and (max-height: 500px) {
             #game-container {
-                height: 100vh;
+                height: var(--vh, 100vh);
             }
         }
         
@@ -143,13 +168,13 @@
             font-size: 24px;
             font-weight: bold;
             margin-bottom: 10px;
-            font-family: 'AlibabaPuHuiTi', 'Microsoft YaHei', Arial, sans-serif;
+            font-family: 'HappyCotton', 'Microsoft YaHei', Arial, sans-serif;
         }
         
         #orientation-tip .hint {
             font-size: 16px;
             opacity: 0.8;
-            font-family: 'AlibabaPuHuiTi', 'Microsoft YaHei', Arial, sans-serif;
+            font-family: 'HappyCotton', 'Microsoft YaHei', Arial, sans-serif;
         }
         
         /* 移动端竖屏时隐藏游戏 */
@@ -264,8 +289,19 @@
             }
         };
         
+        // 设置动态视口高度（解决移动端浏览器工具栏遮挡问题）
+        function setViewportHeight() {
+            // 获取实际可视区域高度（不包括浏览器工具栏）
+            const vh = window.innerHeight * 0.01;
+            // 设置 CSS 变量
+            document.documentElement.style.setProperty('--vh', `${vh * 100}px`);
+        }
+        
         // 检测屏幕方向并显示/隐藏提示
         function checkOrientation() {
+            // 更新视口高度
+            setViewportHeight();
+            
             const tip = document.getElementById('orientation-tip');
             const gameContainer = document.getElementById('game-container');
             const loading = document.getElementById('loading');
@@ -314,19 +350,39 @@
             });
         }
         
-        // 初始检查
+        // 初始化视口高度
+        setViewportHeight();
         checkOrientation();
         
         // 监听方向变化
         window.addEventListener('orientationchange', () => {
-            setTimeout(checkOrientation, 100);
-            // 方向变化后，如果是横屏且支持全屏，可以提示用户点击进入全屏
-            hasTriedFullscreen = false;
+            // 延迟执行，等待浏览器完成方向切换
+            setTimeout(() => {
+                setViewportHeight();
+                checkOrientation();
+                // 方向变化后，如果是横屏且支持全屏，可以提示用户点击进入全屏
+                hasTriedFullscreen = false;
+            }, 200);
         });
         
-        // 监听窗口大小变化（某些设备不触发 orientationchange）
+        // 监听窗口大小变化（包括浏览器工具栏显示/隐藏）
         window.addEventListener('resize', () => {
+            setViewportHeight();
             setTimeout(checkOrientation, 100);
+        });
+        
+        // 监听视觉视口变化（移动端浏览器工具栏显示/隐藏）
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', () => {
+                setViewportHeight();
+                setTimeout(checkOrientation, 100);
+            });
+        }
+        
+        // 页面加载完成后再次设置（确保正确）
+        window.addEventListener('load', () => {
+            setViewportHeight();
+            checkOrientation();
         });
         
         // 在用户第一次交互时尝试全屏（移动端需要用户手势）

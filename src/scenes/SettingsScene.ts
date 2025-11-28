@@ -4,6 +4,7 @@ import TimerManager from '../managers/TimerManager';
 import DataManager from '../managers/DataManager';
 import ButtonFactory from '../utils/ButtonFactory';
 import DOMUtils from '../utils/DOMUtils';
+import { getTitleFont, getBodyFont, getNumberFont } from '../config/FontConfig';
 
 /**
  * 设置场景 - 统一UI设计（使用ButtonFactory）
@@ -107,7 +108,7 @@ export default class SettingsScene extends Phaser.Scene {
     titleBg.fillRoundedRect(width / 2 - 150, 35, 300, 70, 15);
     
     const title = this.add.text(width / 2, 70, '⚙️ 设置', {
-      fontFamily: 'Arial Black, Microsoft YaHei',
+      fontFamily: getTitleFont(),
       fontSize: '56px',
       color: '#FFD700',
       stroke: '#FF69B4',
@@ -209,7 +210,7 @@ export default class SettingsScene extends Phaser.Scene {
     
     // 标签
     this.add.text(x - 310, y, label, {
-      fontFamily: 'Arial Black, Microsoft YaHei',
+      fontFamily: getTitleFont(),
       fontSize: '32px',
       color: '#FFD700',
       stroke: '#FF69B4',
@@ -218,7 +219,7 @@ export default class SettingsScene extends Phaser.Scene {
     
     // 值显示
     const valueText = this.add.text(x + 50, y, `${Math.round(initialValue * 100)}%`, {
-      fontFamily: 'Arial Black',
+      fontFamily: getNumberFont(),
       fontSize: '36px',
       color: '#FFD700',
       stroke: '#000000',
@@ -257,7 +258,7 @@ export default class SettingsScene extends Phaser.Scene {
     
     // 标签
     const timerLabel = this.add.text(x - 310, y, '⏱️ 游戏时长', {
-      fontFamily: 'Arial Black, Microsoft YaHei',
+      fontFamily: getTitleFont(),
       fontSize: '32px',
       color: '#FFD700',
       stroke: '#FF69B4',
@@ -304,7 +305,7 @@ export default class SettingsScene extends Phaser.Scene {
     
     // 标签
     this.add.text(x - 310, y, '👑 玩家名字', {
-      fontFamily: 'Arial Black, Microsoft YaHei',
+      fontFamily: getTitleFont(),
       fontSize: '32px',
       color: '#FFD700',
       stroke: '#FF69B4',
@@ -313,7 +314,7 @@ export default class SettingsScene extends Phaser.Scene {
     
     // 当前名字
     const nameText = this.add.text(x + 10, y, data.playerName, {
-      fontFamily: 'Arial Black, Microsoft YaHei',
+      fontFamily: getTitleFont(),
       fontSize: '32px',
       color: '#ffffff',
       stroke: '#000000',
@@ -358,7 +359,7 @@ export default class SettingsScene extends Phaser.Scene {
     
     // 标题
     const titleText = this.add.text(width / 2, height / 2 - 100, '修改名字', {
-      fontFamily: 'Microsoft YaHei',
+      fontFamily: getTitleFont(),
       fontSize: '28px',
       color: '#FF69B4',
       fontStyle: 'bold'
@@ -368,7 +369,7 @@ export default class SettingsScene extends Phaser.Scene {
     
     // 提示文本
     const promptText = this.add.text(width / 2, height / 2 - 50, '请输入你的新名字：', {
-      fontFamily: 'Microsoft YaHei',
+      fontFamily: getBodyFont(),
       fontSize: '22px',
       color: '#333333'
     });

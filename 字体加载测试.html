@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>字体加载测试</title>
+    <style>
+        @font-face {
+            font-family: 'AlibabaPuHuiTi';
+            src: url('assets/font/AlibabaPuHuiTi-3-75-SemiBold.ttf') format('truetype');
+            font-weight: 600;
+            font-style: normal;
+            font-display: swap;
+        }
+        
+        body {
+            font-family: 'AlibabaPuHuiTi', 'Microsoft YaHei', Arial, sans-serif;
+            padding: 20px;
+        }
+        
+        .test {
+            font-size: 24px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>字体加载测试</h1>
+    <div class="test">这是测试文字：数学童话冒险 123456</div>
+    <div class="test" style="font-family: 'AlibabaPuHuiTi', sans-serif;">阿里巴巴普惠体：数学童话冒险 123456</div>
+    <div class="test" style="font-family: 'Microsoft YaHei', sans-serif;">微软雅黑（备用）：数学童话冒险 123456</div>
+    
+    <script>
+        if ('fonts' in document) {
+            document.fonts.ready.then(() => {
+                const loaded = document.fonts.check('12px "AlibabaPuHuiTi"');
+                console.log('字体加载状态:', loaded);
+                if (loaded) {
+                    document.body.innerHTML += '<div style="color: green;">✅ 字体已加载</div>';
+                } else {
+                    document.body.innerHTML += '<div style="color: red;">❌ 字体未加载</div>';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
+

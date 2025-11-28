@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import DataManager from '../managers/DataManager';
 import ButtonFactory from '../utils/ButtonFactory';
 import { LeaderboardManager } from '../managers/LeaderboardManager';
+import { getTitleFont, getBodyFont } from '../config/FontConfig';
 
 /**
  * 游戏结算场景 - 统一UI设计（使用ButtonFactory）
@@ -88,7 +89,7 @@ export default class GameOverScene extends Phaser.Scene {
     titleBg.fillRoundedRect(width / 2 - 250, height * 0.12, 500, 100, 20);
     
     const title = this.add.text(width / 2, height * 0.15, titleText, {
-      fontFamily: 'Arial Black, Microsoft YaHei',
+      fontFamily: getTitleFont(),
       fontSize: '64px',
       color: titleColor,
       stroke: strokeColor,
@@ -121,7 +122,7 @@ export default class GameOverScene extends Phaser.Scene {
     // 得分
     const scoreY = data.victory ? height * 0.48 : height * 0.35;
     const scoreText = this.add.text(width / 2, scoreY, `得分: ${data.score}`, {
-      fontFamily: 'Microsoft YaHei',
+      fontFamily: getBodyFont(),
       fontSize: '36px',
       color: '#ffffff'
     });
@@ -134,7 +135,7 @@ export default class GameOverScene extends Phaser.Scene {
       scoreY + 60,
       `正确率: ${accuracy}% (${data.correct}/${data.total})`,
       {
-        fontFamily: 'Microsoft YaHei',
+        fontFamily: getBodyFont(),
         fontSize: '28px',
         color: '#ffffff'
       }
@@ -143,7 +144,7 @@ export default class GameOverScene extends Phaser.Scene {
     
     // 金币奖励
     const coinsText = this.add.text(width / 2, scoreY + 120, `💰 +${data.score} 金币`, {
-      fontFamily: 'Microsoft YaHei',
+      fontFamily: getBodyFont(),
       fontSize: '32px',
       color: '#FFD700'
     });
