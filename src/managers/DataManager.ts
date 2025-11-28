@@ -51,7 +51,7 @@ export default class DataManager {
    */
   private getDefaultData(): PlayerData {
     return {
-      playerName: '小公主',
+      playerName: '',  // 初始名字为空，必须由玩家设置
       coins: 0,
       totalStars: 0,
       levelProgress: [],

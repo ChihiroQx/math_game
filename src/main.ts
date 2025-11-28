@@ -26,12 +26,12 @@ const config: Phaser.Types.Core.GameConfig = {
     autoCenter: Phaser.Scale.CENTER_BOTH,
     // 移动端优化
     ...(isMobile && {
-      // 移动端使用更合适的缩放模式
+      // 移动端保持 FIT 模式（保持宽高比，避免变形）
+      // 但允许动态调整以适应不同屏幕
       mode: Phaser.Scale.FIT,
-      // 保持宽高比
       autoCenter: Phaser.Scale.CENTER_BOTH,
-      // 响应式调整
-      resizeInterval: 500
+      // 响应式调整间隔
+      resizeInterval: 100
     })
   },
   physics: {

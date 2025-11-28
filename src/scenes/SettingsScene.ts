@@ -3,6 +3,7 @@ import AudioManager from '../managers/AudioManager';
 import TimerManager from '../managers/TimerManager';
 import DataManager from '../managers/DataManager';
 import ButtonFactory from '../utils/ButtonFactory';
+import DOMUtils from '../utils/DOMUtils';
 
 /**
  * 设置场景 - 统一UI设计（使用ButtonFactory）
@@ -374,27 +375,36 @@ export default class SettingsScene extends Phaser.Scene {
     promptText.setOrigin(0.5);
     promptText.setDepth(102);
     
-    // 创建HTML输入框
-    const inputElement = document.createElement('input');
+    // 创建HTML输入框（相对于画布定位）
+    const inputElement = DOMUtils.createPositionedInput(
+      width / 2,
+      height / 2,
+      width,
+      height,
+      Math.min(300, width * 0.6), // 响应式宽度
+      Math.max(40, height * 0.06)   // 响应式高度
+    );
     inputElement.type = 'text';
     inputElement.placeholder = '请输入名字（2-8个字）';
     inputElement.maxLength = 8;
-    inputElement.style.position = 'absolute';
-    inputElement.style.left = '50%';
-    inputElement.style.top = '50%';
-    inputElement.style.transform = 'translate(-50%, -50%)';
-    inputElement.style.width = '300px';
-    inputElement.style.height = '40px';
-    inputElement.style.fontSize = '20px';
+    inputElement.style.fontSize = `${Math.max(16, Math.min(20, width * 0.016))}px`;
     inputElement.style.textAlign = 'center';
     inputElement.style.border = '2px solid #FFD700';
     inputElement.style.borderRadius = '10px';
     inputElement.style.outline = 'none';
-    inputElement.style.zIndex = '1000';
+    inputElement.style.padding = '0 10px';
+    inputElement.style.boxSizing = 'border-box';
     inputElement.value = DataManager.getInstance().playerData.playerName;
     document.body.appendChild(inputElement);
     inputElement.focus();
     inputElement.select();
+    
+    // 监听窗口大小变化，更新输入框位置
+    const updateInputPosition = () => {
+      DOMUtils.updateInputPosition(inputElement, width / 2, height / 2, width, height);
+    };
+    window.addEventListener('resize', updateInputPosition);
+    window.addEventListener('orientationchange', updateInputPosition);
     
     // 确认按钮
     const confirmBtn = ButtonFactory.createButton(this, {
@@ -416,8 +426,12 @@ export default class SettingsScene extends Phaser.Scene {
         DataManager.getInstance().playerData.playerName = name;
         DataManager.getInstance().saveData();
         
-        // 移除输入框和对话框
-        document.body.removeChild(inputElement);
+        // 移除事件监听和输入框
+        window.removeEventListener('resize', updateInputPosition);
+        window.removeEventListener('orientationchange', updateInputPosition);
+        if (inputElement.parentNode) {
+          document.body.removeChild(inputElement);
+        }
         overlay.destroy();
         dialogBg.destroy();
         titleText.destroy();
@@ -441,7 +455,12 @@ export default class SettingsScene extends Phaser.Scene {
       color: 0x95a5a6,
       fontSize: '24px',
       callback: () => {
-        document.body.removeChild(inputElement);
+        // 移除事件监听和输入框
+        window.removeEventListener('resize', updateInputPosition);
+        window.removeEventListener('orientationchange', updateInputPosition);
+        if (inputElement.parentNode) {
+          document.body.removeChild(inputElement);
+        }
         overlay.destroy();
         dialogBg.destroy();
         titleText.destroy();
@@ -453,14 +472,14 @@ export default class SettingsScene extends Phaser.Scene {
     cancelBtn.setDepth(102);
     
     // 按回车键确认
-    inputElement.addEventListener('keypress', (event) => {
+    inputElement.addEventListener('keypress', (event: KeyboardEvent) => {
       if (event.key === 'Enter') {
         confirmBtn.emit('pointerdown');
       }
     });
     
     // 按ESC键取消
-    inputElement.addEventListener('keydown', (event) => {
+    inputElement.addEventListener('keydown', (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         cancelBtn.emit('pointerdown');
       }

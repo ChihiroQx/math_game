@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import DataManager from '../managers/DataManager';
 import AudioManager from '../managers/AudioManager';
 import ButtonFactory from '../utils/ButtonFactory';
+import DOMUtils from '../utils/DOMUtils';
 
 /**
  * 主菜单场景 - 全新设计（使用ButtonFactory）
@@ -148,7 +149,7 @@ export default class MainMenuScene extends Phaser.Scene {
     });
     
     // 副标题
-    const subtitle = this.add.text(width / 2, height * 0.23, '🏰 公主与森林小动物的冒险 🐰', {
+    const subtitle = this.add.text(width / 2, height * 0.23, '🎮 通过答题击败怪物，保卫你的角色！⚔️', {
       fontFamily: 'Microsoft YaHei',
       fontSize: '26px',
       color: '#ffffff',
@@ -188,7 +189,8 @@ export default class MainMenuScene extends Phaser.Scene {
     nameCardBg.fillStyle(0xFFFFFF, 0.3);
     nameCardBg.fillRoundedRect(20, 20, 200, 50, 25);
     
-    const nameText = this.add.text(30, 45, `👑 ${data.playerName}`, {
+    const displayName = data.playerName || '未设置';
+    const nameText = this.add.text(30, 45, `👑 ${displayName}`, {
       fontFamily: 'Microsoft YaHei',
       fontSize: '24px',
       color: '#ffffff',
@@ -356,23 +358,25 @@ export default class MainMenuScene extends Phaser.Scene {
   }
   
   /**
-   * 检查是否首次启动
+   * 检查是否首次启动或名字为空，如果是则必须输入名字
    */
   private checkFirstLaunch(): void {
-    const isFirstLaunch = localStorage.getItem('game_first_launch');
-    if (!isFirstLaunch) {
+    const dataManager = DataManager.getInstance();
+    
+    // 如果名字为空，必须设置名字才能继续
+    if (!dataManager.playerData.playerName || dataManager.playerData.playerName.trim() === '') {
       // 延迟显示，让主菜单先加载完成
       this.time.delayedCall(500, () => {
-        this.showNameInputDialog();
+        this.showNameInputDialog(true); // true 表示必须设置，不能取消
       });
-      localStorage.setItem('game_first_launch', 'false');
     }
   }
   
   /**
    * 显示名字输入对话框
+   * @param required 是否必须设置（首次进入时为 true，不能取消）
    */
-  private showNameInputDialog(): void {
+  private showNameInputDialog(required: boolean = false): void {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
     
@@ -407,26 +411,35 @@ export default class MainMenuScene extends Phaser.Scene {
     promptText.setOrigin(0.5);
     promptText.setDepth(102);
     
-    // 创建HTML输入框
-    const inputElement = document.createElement('input');
+    // 创建HTML输入框（相对于画布定位）
+    const inputElement = DOMUtils.createPositionedInput(
+      width / 2,
+      height / 2,
+      width,
+      height,
+      Math.min(300, width * 0.6), // 响应式宽度
+      Math.max(40, height * 0.06)   // 响应式高度
+    );
     inputElement.type = 'text';
     inputElement.placeholder = '请输入名字（2-8个字）';
     inputElement.maxLength = 8;
-    inputElement.style.position = 'absolute';
-    inputElement.style.left = '50%';
-    inputElement.style.top = '50%';
-    inputElement.style.transform = 'translate(-50%, -50%)';
-    inputElement.style.width = '300px';
-    inputElement.style.height = '40px';
-    inputElement.style.fontSize = '20px';
+    inputElement.style.fontSize = `${Math.max(16, Math.min(20, width * 0.016))}px`;
     inputElement.style.textAlign = 'center';
     inputElement.style.border = '2px solid #FFD700';
     inputElement.style.borderRadius = '10px';
     inputElement.style.outline = 'none';
-    inputElement.style.zIndex = '1000';
-    inputElement.value = DataManager.getInstance().playerData.playerName;
+    inputElement.style.padding = '0 10px';
+    inputElement.style.boxSizing = 'border-box';
+    inputElement.value = DataManager.getInstance().playerData.playerName || '';
     document.body.appendChild(inputElement);
     inputElement.focus();
+    
+    // 监听窗口大小变化，更新输入框位置
+    const updateInputPosition = () => {
+      DOMUtils.updateInputPosition(inputElement, width / 2, height / 2, width, height);
+    };
+    window.addEventListener('resize', updateInputPosition);
+    window.addEventListener('orientationchange', updateInputPosition);
     
     // 确认按钮
     const confirmBtn = ButtonFactory.createButton(this, {
@@ -448,13 +461,20 @@ export default class MainMenuScene extends Phaser.Scene {
         DataManager.getInstance().playerData.playerName = name;
         DataManager.getInstance().saveData();
         
-        // 移除输入框和对话框
-        document.body.removeChild(inputElement);
+        // 移除事件监听和输入框
+        window.removeEventListener('resize', updateInputPosition);
+        window.removeEventListener('orientationchange', updateInputPosition);
+        if (inputElement.parentNode) {
+          document.body.removeChild(inputElement);
+        }
         overlay.destroy();
         dialogBg.destroy();
         titleText.destroy();
         promptText.destroy();
         confirmBtn.destroy();
+        if (!required && cancelBtn) {
+          cancelBtn.destroy();
+        }
         
         // 刷新玩家信息显示
         this.scene.restart();
@@ -462,11 +482,51 @@ export default class MainMenuScene extends Phaser.Scene {
     });
     confirmBtn.setDepth(102);
     
+    // 取消按钮（仅在非必须设置时显示）
+    let cancelBtn: Phaser.GameObjects.Container | null = null;
+    if (!required) {
+      cancelBtn = ButtonFactory.createButton(this, {
+        x: width / 2 + 120,
+        y: height / 2 + 80,
+        width: 120,
+        height: 50,
+        text: '取消',
+        color: 0x95a5a6,
+        fontSize: '24px',
+        callback: () => {
+          // 移除事件监听和输入框
+          window.removeEventListener('resize', updateInputPosition);
+          window.removeEventListener('orientationchange', updateInputPosition);
+          if (inputElement.parentNode) {
+            document.body.removeChild(inputElement);
+          }
+          overlay.destroy();
+          dialogBg.destroy();
+          titleText.destroy();
+          promptText.destroy();
+          confirmBtn.destroy();
+          if (cancelBtn) {
+            cancelBtn.destroy();
+          }
+        }
+      });
+      cancelBtn.setDepth(102);
+    }
+    
     // 按回车键也可以确认
     inputElement.addEventListener('keypress', (event) => {
       if (event.key === 'Enter') {
         confirmBtn.emit('pointerdown');
       }
     });
+    
+    // 如果是必须设置，禁用 ESC 键关闭
+    if (required) {
+      inputElement.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+        }
+      });
+    }
   }
 }
