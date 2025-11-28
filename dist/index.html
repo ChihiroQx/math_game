@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>数学童话冒险</title><style>* {
+<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="format-detection" content="telephone=no"><meta name="screen-orientation" content="landscape"><meta name="x5-orientation" content="landscape"><meta name="x5-fullscreen" content="true"><title>数学童话冒险</title><style>* {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -13,6 +13,13 @@
             align-items: center;
             min-height: 100vh;
             font-family: 'Microsoft YaHei', Arial, sans-serif;
+            /* 移动端优化 */
+            -webkit-touch-callout: none; /* 禁用长按菜单 */
+            -webkit-user-select: none; /* 禁用文本选择 */
+            user-select: none;
+            touch-action: manipulation; /* 优化触摸响应 */
+            /* 安全区域适配（刘海屏等） */
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
         }
         
         #game-container {
@@ -26,6 +33,9 @@
         canvas {
             border-radius: 10px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            /* 移动端优化 */
+            touch-action: none; /* 禁用默认触摸行为 */
+            -webkit-tap-highlight-color: transparent; /* 移除点击高亮 */
         }
         
         #loading {
@@ -52,4 +62,120 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
-        }</style><script defer="defer" src="bundle.js"></script></head><body><div id="loading"><div class="spinner"></div><div>游戏加载中...</div></div><div id="game-container"></div></body></html>
+        }
+        
+        /* 移动端特定样式 */
+        @media (max-width: 768px) {
+            #loading {
+                font-size: 18px;
+            }
+            
+            .spinner {
+                width: 30px;
+                height: 30px;
+            }
+        }
+        
+        /* 横屏优化 */
+        @media (orientation: landscape) and (max-height: 500px) {
+            #game-container {
+                height: 100vh;
+            }
+        }
+        
+        /* 竖屏提示界面 */
+        #orientation-tip {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            z-index: 10000;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        #orientation-tip.show {
+            display: flex;
+        }
+        
+        #orientation-tip .icon {
+            font-size: 80px;
+            margin-bottom: 30px;
+            animation: rotate 2s linear infinite;
+        }
+        
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(90deg); }
+        }
+        
+        #orientation-tip .text {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+        }
+        
+        #orientation-tip .hint {
+            font-size: 16px;
+            opacity: 0.8;
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+        }
+        
+        /* 移动端竖屏时隐藏游戏 */
+        @media (orientation: portrait) and (max-width: 768px) {
+            #game-container {
+                display: none !important;
+            }
+            
+            #loading {
+                display: none !important;
+            }
+        }</style><script defer="defer" src="bundle.js"></script></head><body><div id="orientation-tip"><div class="icon">📱</div><div class="text">请将设备横屏</div><div class="hint">为了获得最佳游戏体验，请旋转您的设备至横屏模式</div></div><div id="loading"><div class="spinner"></div><div>游戏加载中...</div></div><div id="game-container"></div><script>// 检测屏幕方向并显示/隐藏提示
+        function checkOrientation() {
+            const tip = document.getElementById('orientation-tip');
+            const gameContainer = document.getElementById('game-container');
+            const loading = document.getElementById('loading');
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            if (!isMobile) {
+                // 非移动设备，始终显示游戏
+                if (tip) tip.classList.remove('show');
+                return;
+            }
+            
+            // 移动设备检测方向
+            const isPortrait = window.innerHeight > window.innerWidth;
+            
+            if (isPortrait) {
+                // 竖屏：显示提示，隐藏游戏
+                if (tip) tip.classList.add('show');
+                if (gameContainer) gameContainer.style.display = 'none';
+                if (loading) loading.style.display = 'none';
+            } else {
+                // 横屏：隐藏提示，显示游戏
+                if (tip) tip.classList.remove('show');
+                if (gameContainer) gameContainer.style.display = 'flex';
+            }
+        }
+        
+        // 初始检查
+        checkOrientation();
+        
+        // 监听方向变化
+        window.addEventListener('orientationchange', () => {
+            setTimeout(checkOrientation, 100);
+        });
+        
+        // 监听窗口大小变化（某些设备不触发 orientationchange）
+        window.addEventListener('resize', () => {
+            setTimeout(checkOrientation, 100);
+        });</script></body></html>

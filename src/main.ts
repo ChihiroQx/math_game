@@ -12,6 +12,9 @@ import SkinShopScene from './scenes/SkinShopScene';
 /**
  * 游戏配置
  */
+// 检测是否为移动设备
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   width: 1280,
@@ -20,7 +23,16 @@ const config: Phaser.Types.Core.GameConfig = {
   backgroundColor: '#87CEEB',
   scale: {
     mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+    // 移动端优化
+    ...(isMobile && {
+      // 移动端使用更合适的缩放模式
+      mode: Phaser.Scale.FIT,
+      // 保持宽高比
+      autoCenter: Phaser.Scale.CENTER_BOTH,
+      // 响应式调整
+      resizeInterval: 500
+    })
   },
   physics: {
     default: 'arcade',
@@ -29,6 +41,17 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: false
     }
   },
+  // 移动端性能优化
+  ...(isMobile && {
+    fps: {
+      target: 60,
+      forceSetTimeOut: false
+    },
+    render: {
+      antialias: false, // 移动端关闭抗锯齿提升性能
+      pixelArt: false
+    }
+  }),
   scene: [
     BootScene,
     PreloadScene,
@@ -54,3 +77,40 @@ window.addEventListener('load', () => {
     }, 500);
   }
 });
+
+// 移动端优化：禁用默认触摸行为
+if (isMobile) {
+  // 禁用双击缩放
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', (event) => {
+    const now = Date.now();
+    if (now - lastTouchEnd <= 300) {
+      event.preventDefault();
+    }
+    lastTouchEnd = now;
+  }, false);
+  
+  // 禁用长按菜单
+  document.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+  });
+  
+  // 处理横竖屏切换（仅在横屏时刷新）
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => {
+      // 只在横屏时刷新游戏画布
+      const isPortrait = window.innerHeight > window.innerWidth;
+      if (!isPortrait && game && game.scale) {
+        game.scale.refresh();
+      }
+    }, 100);
+  });
+  
+  // 处理窗口大小变化（移动端浏览器工具栏显示/隐藏，仅在横屏时）
+  window.addEventListener('resize', () => {
+    const isPortrait = window.innerHeight > window.innerWidth;
+    if (!isPortrait && game && game.scale) {
+      game.scale.refresh();
+    }
+  });
+}
