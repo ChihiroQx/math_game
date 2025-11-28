@@ -9,6 +9,7 @@ import { Monster } from '../entities/Monster';
 import { Princess } from '../entities/Princess';
 import ButtonFactory from '../utils/ButtonFactory';
 import { getTitleFont, getBodyFont, getNumberFont } from '../config/FontConfig';
+import { getSpecialQuestionProbability, getSpecialQuestionCountdown } from '../config/GameConfig';
 
 /**
  * 游戏玩法场景 - 战斗版本（使用ButtonFactory）
@@ -47,6 +48,11 @@ export default class GamePlayScene extends Phaser.Scene {
   private waveText!: Phaser.GameObjects.Text;
   private pauseButton!: Phaser.GameObjects.Text;
   
+  // 特殊题相关UI
+  private specialQuestionIcon!: Phaser.GameObjects.Text | null;
+  private specialQuestionTimer!: Phaser.GameObjects.Text | null;
+  private specialQuestionTimerEvent!: Phaser.Time.TimerEvent | null;
+  
   // 暂停相关
   private isPaused: boolean = false;
   private pauseOverlay!: Phaser.GameObjects.Graphics;
@@ -78,6 +84,8 @@ export default class GamePlayScene extends Phaser.Scene {
       this.nextWaveTimer.destroy();
       this.nextWaveTimer = null;
     }
+    // 清除特殊题UI
+    this.clearSpecialQuestionUI();
     
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
@@ -681,6 +689,9 @@ export default class GamePlayScene extends Phaser.Scene {
       return;
     }
     
+    // 清除特殊题相关UI和定时器
+    this.clearSpecialQuestionUI();
+    
     const index = this.gameManager.currentQuestionIndex;
     this.currentQuestion = this.questionManager.getQuestion(index);
     
@@ -689,8 +700,30 @@ export default class GamePlayScene extends Phaser.Scene {
       return;
     }
     
+    // 根据配置的概率生成特殊题（更高难度或混合运算）
+    if (Math.random() < getSpecialQuestionProbability()) {
+      // 获取当前关卡的题型和难度
+      const currentWorld = this.gameManager.currentWorld;
+      const currentLevel = this.gameManager.currentLevel;
+      const currentType = this.questionManager.getQuestionTypeForLevel(currentWorld, currentLevel);
+      const currentDifficulty = this.questionManager.getDifficultyForLevel(currentWorld, currentLevel);
+      
+      // 生成特殊题（更高难度或混合运算）
+      this.currentQuestion = this.questionManager.generateSpecialQuestion(currentType, currentDifficulty);
+      this.currentQuestion.isSpecial = true;
+      console.log('🎯 特殊题出现！', this.currentQuestion.questionText);
+    } else {
+      this.currentQuestion.isSpecial = false;
+    }
+    
     // 显示题目
     this.questionText.setText(this.currentQuestion.questionText);
+    
+    // 如果是特殊题，显示特殊标识和倒计时
+    if (this.currentQuestion.isSpecial) {
+      this.showSpecialQuestionUI();
+      this.startSpecialQuestionTimer();
+    }
     
     // 更新进度（显示答题数而不是限制数）
     this.updateProgress();
@@ -699,6 +732,129 @@ export default class GamePlayScene extends Phaser.Scene {
     this.createAnswerButtons();
     
     this.isAnswering = true;
+  }
+  
+  /**
+   * 显示特殊题UI（图标和倒计时）
+   */
+  private showSpecialQuestionUI(): void {
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    
+    // 特殊题图标（在题目右侧）
+    const questionX = width / 2;
+    const questionY = 100;
+    const iconX = questionX + 200; // 题目右侧
+    
+    this.specialQuestionIcon = this.add.text(iconX, questionY - 20, '⭐', {
+      fontFamily: getTitleFont(),
+      fontSize: '40px',
+      color: '#FFD700',
+      stroke: '#FF1493',
+      strokeThickness: 4
+    });
+    this.specialQuestionIcon.setOrigin(0.5);
+    this.specialQuestionIcon.setDepth(100);
+    
+    // 倒计时文字
+    const countdownSeconds = getSpecialQuestionCountdown();
+    this.specialQuestionTimer = this.add.text(iconX, questionY + 20, countdownSeconds.toString(), {
+      fontFamily: getNumberFont(),
+      fontSize: '32px',
+      color: '#FF0000',
+      stroke: '#FFFFFF',
+      strokeThickness: 6
+    });
+    this.specialQuestionTimer.setOrigin(0.5);
+    this.specialQuestionTimer.setDepth(100);
+  }
+  
+  /**
+   * 启动特殊题倒计时
+   */
+  private startSpecialQuestionTimer(): void {
+    const countdownSeconds = getSpecialQuestionCountdown();
+    let remainingTime = countdownSeconds; // 从配置获取倒计时秒数
+    
+    // 更新倒计时显示
+    const updateTimer = () => {
+      if (this.specialQuestionTimer) {
+        this.specialQuestionTimer.setText(remainingTime.toString());
+        
+        // 最后2秒闪烁效果
+        if (remainingTime <= 2) {
+          this.tweens.add({
+            targets: this.specialQuestionTimer,
+            alpha: 0.3,
+            duration: 200,
+            yoyo: true,
+            repeat: 1
+          });
+        }
+      }
+      
+      remainingTime--;
+      
+      if (remainingTime < 0) {
+        // 时间到，自动放弃特殊题
+        this.onSpecialQuestionTimeout();
+      }
+    };
+    
+    // 立即更新一次
+    updateTimer();
+    
+    // 每秒更新一次
+    this.specialQuestionTimerEvent = this.time.addEvent({
+      delay: 1000,
+      callback: updateTimer,
+      repeat: countdownSeconds - 1 // 重复次数 = 总秒数 - 1
+    });
+  }
+  
+  /**
+   * 特殊题超时处理
+   */
+  private onSpecialQuestionTimeout(): void {
+    console.log('⏰ 特殊题超时，自动放弃');
+    
+    // 清除特殊题UI
+    this.clearSpecialQuestionUI();
+    
+    // 重置题目状态
+    if (this.currentQuestion) {
+      this.currentQuestion.isSpecial = false;
+    }
+    
+    // 切换到下一题
+    this.isAnswering = false;
+    this.answerButtons.forEach(btn => btn.disableInteractive());
+    
+    this.time.delayedCall(500, () => {
+      if (!this.gameEnded && !this.isPaused) {
+        this.loadQuestion();
+      }
+    });
+  }
+  
+  /**
+   * 清除特殊题UI
+   */
+  private clearSpecialQuestionUI(): void {
+    if (this.specialQuestionIcon) {
+      this.specialQuestionIcon.destroy();
+      this.specialQuestionIcon = null;
+    }
+    
+    if (this.specialQuestionTimer) {
+      this.specialQuestionTimer.destroy();
+      this.specialQuestionTimer = null;
+    }
+    
+    if (this.specialQuestionTimerEvent) {
+      this.specialQuestionTimerEvent.destroy();
+      this.specialQuestionTimerEvent = null;
+    }
   }
   
   /**
@@ -845,8 +1001,38 @@ export default class GamePlayScene extends Phaser.Scene {
   private onCorrectAnswer(): void {
     this.audioManager.playSFX('correct');
     
+    // 清除特殊题UI和定时器
+    this.clearSpecialQuestionUI();
+    
+    // 检查是否为特殊题
+    if (this.currentQuestion?.isSpecial) {
+      this.onSpecialQuestionCorrect();
+      return;
+    }
+    
+    // 普通题：攻击最近的怪物
+    this.attackNearestMonster();
+    
+    // 更新游戏状态
+    this.gameManager.onAnswerCorrect();
+    
+    // 更新得分显示
+    this.updateScore();
+    
+    // 快速切换到下一题（减少等待时间）
+    this.time.delayedCall(600, () => {
+      if (!this.gameEnded && !this.isPaused) {
+        // 继续下一题（无限答题模式）
+        this.loadQuestion();
+      }
+    });
+  }
+  
+  /**
+   * 攻击最近的怪物（普通题使用）
+   */
+  private attackNearestMonster(): void {
     // 计算伤害（根据难度和角色攻击力加成）
-    // 调整伤害计算，让低关卡更容易，高关卡更有挑战
     const level = this.gameManager.currentLevel;
     let baseDamage = 50; // 基础伤害提高到50
     
@@ -870,7 +1056,6 @@ export default class GamePlayScene extends Phaser.Scene {
     const nearestMonster = this.findNearestMonster();
     if (nearestMonster) {
       // 预判怪物位置（考虑怪物移动）
-      // 首先估算一个初始飞行时间用于预判（基于平均距离）
       const estimatedFlightTime = 0.85; // 秒（初步估算）
       
       // 怪物向左移动，预测位置 = 当前位置 - 移动距离
@@ -879,7 +1064,6 @@ export default class GamePlayScene extends Phaser.Scene {
       const targetY = nearestMonster.sprite.y - 30; // 向上30像素到怪物身体中心
       
       // 公主发射魔法攻击（瞄准预判位置）
-      // playAttackAnimation 会根据距离动态计算飞行时间并返回总时间（毫秒）
       const actualTotalTime = this.princess.playAttackAnimation(
         predictedX,
         targetY,
@@ -900,19 +1084,97 @@ export default class GamePlayScene extends Phaser.Scene {
         }
       });
     }
+  }
+  
+  /**
+   * 特殊题答对处理（对所有怪物造成伤害）
+   */
+  private onSpecialQuestionCorrect(): void {
+    console.log('🎯 特殊题完成！对所有怪物造成伤害');
     
-    // 更新游戏状态
-    this.gameManager.onAnswerCorrect();
+    // 计算伤害（与普通题相同）
+    const level = this.gameManager.currentLevel;
+    let baseDamage = 50;
     
-    // 更新得分显示
-    this.updateScore();
+    if (level === 1) {
+      baseDamage = 60;
+    } else if (level === 2) {
+      baseDamage = 55;
+    } else if (level <= 4) {
+      baseDamage = 50;
+    } else {
+      baseDamage = 45;
+    }
     
-    // 快速切换到下一题（减少等待时间）
-    this.time.delayedCall(600, () => {
-      if (!this.gameEnded && !this.isPaused) {
-        // 继续下一题（无限答题模式）
-        this.loadQuestion();
-      }
+    if (!this.princess) return;
+    
+    const damage = Math.floor(baseDamage * (this.princess.attackPower / 100));
+    
+    // 获取所有活着的怪物
+    const aliveMonsters = this.activeMonsters.filter(m => m.isAlive);
+    
+    if (aliveMonsters.length === 0) {
+      console.log('没有活着的怪物');
+      // 更新游戏状态
+      this.gameManager.onAnswerCorrect();
+      this.updateScore();
+      this.time.delayedCall(600, () => {
+        if (!this.gameEnded && !this.isPaused) {
+          this.loadQuestion();
+        }
+      });
+      return;
+    }
+    
+    // 对所有怪物造成伤害
+    let attackCount = 0;
+    const totalMonsters = aliveMonsters.length;
+    
+    aliveMonsters.forEach((monster, index) => {
+      // 预判怪物位置
+      const estimatedFlightTime = 0.85;
+      const predictedX = monster.sprite.x - (monster.moveSpeed * estimatedFlightTime);
+      const targetY = monster.sprite.y - 30;
+      
+      // 延迟发射，让攻击有先后顺序（视觉效果更好）
+      const delay = index * 150; // 每个怪物间隔150ms
+      
+      this.time.delayedCall(delay, () => {
+        // 公主发射魔法攻击
+        const actualTotalTime = this.princess.playAttackAnimation(
+          predictedX,
+          targetY,
+          damage
+        );
+        
+        // 延迟造成伤害
+        this.time.delayedCall(actualTotalTime, () => {
+          if (!monster.isAlive) {
+            console.log('怪物已死亡，跳过伤害');
+            return;
+          }
+          
+          monster.takeDamage(damage);
+          attackCount++;
+          
+          if (!monster.isAlive) {
+            this.removeMonster(monster);
+            this.updateWaveText();
+          }
+          
+          // 所有攻击完成后，切换到下一题
+          if (attackCount >= totalMonsters) {
+            this.gameManager.onAnswerCorrect();
+            this.updateScore();
+            
+            this.time.delayedCall(600, () => {
+              if (!this.gameEnded && !this.isPaused) {
+                this.loadQuestion();
+              }
+            });
+          }
+        });
+      });
     });
   }
   

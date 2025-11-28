@@ -1,3 +1,5 @@
+import { getSpecialQuestionTypeProbability } from '../config/GameConfig';
+
 /**
  * 题目数据接口
  */
@@ -10,6 +12,7 @@ export interface QuestionData {
   num2: number;
   correctAnswer: number;
   wrongAnswers: number[];
+  isSpecial?: boolean; // 是否为特殊题（完成时对所有怪物造成伤害）
 }
 
 /**
@@ -129,9 +132,9 @@ export default class QuestionManager {
   }
   
   /**
-   * 根据关卡确定题型
+   * 根据关卡确定题型（公开方法，供外部调用）
    */
-  private getQuestionTypeForLevel(world: number, level: number): string {
+  public getQuestionTypeForLevel(world: number, level: number): string {
     switch (world) {
       case 1: // 世界1：数字森林（加减法）
         if (level <= 2) return level === 1 ? 'addition' : 'subtraction';
@@ -153,9 +156,9 @@ export default class QuestionManager {
   }
   
   /**
-   * 根据关卡确定难度
+   * 根据关卡确定难度（公开方法，供外部调用）
    */
-  private getDifficultyForLevel(world: number, level: number): number {
+  public getDifficultyForLevel(world: number, level: number): number {
     switch (world) {
       case 1:
         return level <= 2 ? 1 : 2; // 10以内 vs 20以内
@@ -166,6 +169,123 @@ export default class QuestionManager {
       default:
         return 1;
     }
+  }
+  
+  /**
+   * 生成特殊题（更高难度或混合运算）
+   * @param currentType 当前题型
+   * @param currentDifficulty 当前难度
+   * @returns 特殊题
+   */
+  public generateSpecialQuestion(currentType: string, currentDifficulty: number): QuestionData {
+    // 根据配置的概率选择：更高难度或混合运算
+    const useHigherDifficulty = Math.random() < getSpecialQuestionTypeProbability();
+    
+    if (useHigherDifficulty) {
+      // 生成更高难度的题目（难度+1）
+      const higherDifficulty = Math.min(currentDifficulty + 1, 5);
+      console.log(`🎯 特殊题：更高难度 (${currentDifficulty} → ${higherDifficulty})`);
+      return this.generateQuestion(currentType, higherDifficulty);
+    } else {
+      // 生成混合运算题
+      console.log(`🎯 特殊题：混合运算 (难度 ${currentDifficulty})`);
+      return this.generateMixedOperationQuestion(currentType, currentDifficulty);
+    }
+  }
+  
+  /**
+   * 生成混合运算题
+   */
+  private generateMixedOperationQuestion(baseType: string, difficulty: number): QuestionData {
+    const question: QuestionData = {
+      id: Date.now() + Math.random(),
+      type: baseType, // 保持原类型，但实际是混合运算
+      difficulty,
+      questionText: '',
+      num1: 0,
+      num2: 0,
+      correctAnswer: 0,
+      wrongAnswers: [],
+      isSpecial: true
+    };
+    
+    // 根据基础类型决定混合运算类型
+    if (baseType === 'addition' || baseType === 'subtraction') {
+      // 加减混合：a + b - c = ?
+      this.generateAdditionSubtractionMixed(question, difficulty);
+    } else if (baseType === 'multiplication' || baseType === 'division') {
+      // 乘除混合：a × b ÷ c = ?
+      this.generateMultiplicationDivisionMixed(question, difficulty);
+    } else {
+      // 其他类型，生成更高难度的同类型题
+      return this.generateQuestion(baseType, Math.min(difficulty + 1, 5));
+    }
+    
+    return question;
+  }
+  
+  /**
+   * 生成加减混合运算题
+   */
+  private generateAdditionSubtractionMixed(question: QuestionData, difficulty: number): void {
+    const maxNumber = difficulty === 1 ? 10 : 20;
+    
+    // 生成 a + b - c 的形式
+    const a = Math.floor(Math.random() * (maxNumber - 5)) + 1;
+    const b = Math.floor(Math.random() * (maxNumber - a - 2)) + 1;
+    const temp = a + b; // 中间结果
+    const c = Math.floor(Math.random() * Math.min(temp - 1, maxNumber - 1)) + 1;
+    
+    question.num1 = a;
+    question.num2 = b;
+    question.correctAnswer = temp - c;
+    question.questionText = `${a} + ${b} - ${c} = ?`;
+    
+    // 生成错误答案
+    question.wrongAnswers = this.generateWrongAnswers(question.correctAnswer, 3, maxNumber * 2);
+  }
+  
+  /**
+   * 生成乘除混合运算题
+   */
+  private generateMultiplicationDivisionMixed(question: QuestionData, difficulty: number): void {
+    // 生成 a × b ÷ c 的形式
+    const c = Math.floor(Math.random() * 4) + 2; // 除数 2-5
+    const quotient = Math.floor(Math.random() * 5) + 2; // 商 2-6
+    const product = c * quotient; // a × b 的结果
+    
+    // 将 product 分解为两个因数
+    const factors = this.getFactors(product);
+    if (factors.length >= 2) {
+      const randomIndex = Math.floor(Math.random() * factors.length);
+      question.num1 = factors[randomIndex];
+      question.num2 = product / factors[randomIndex];
+    } else {
+      question.num1 = 2;
+      question.num2 = product / 2;
+    }
+    
+    question.correctAnswer = quotient;
+    question.questionText = `${question.num1} × ${question.num2} ÷ ${c} = ?`;
+    
+    // 生成错误答案
+    question.wrongAnswers = this.generateWrongAnswers(question.correctAnswer, 3, 20);
+  }
+  
+  /**
+   * 获取一个数的所有因数
+   */
+  private getFactors(num: number): number[] {
+    const factors: number[] = [];
+    for (let i = 2; i <= Math.sqrt(num); i++) {
+      if (num % i === 0) {
+        factors.push(i);
+        if (i !== num / i) {
+          factors.push(num / i);
+        }
+      }
+    }
+    return factors.length > 0 ? factors : [2, num / 2];
   }
   
   /**
