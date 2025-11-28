@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import QuestionManager from '../managers/QuestionManager';
 import AudioManager from '../managers/AudioManager';
-import { EFFECTS, getEffectConfig } from '../config/EffectConfig';
+import ResourceManager from '../managers/ResourceManager';
 import { getAllCharacters } from '../config/CharacterConfig';
 
 /**
@@ -38,6 +38,9 @@ export default class PreloadScene extends Phaser.Scene {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
     
+    // 设置资源管理器场景
+    ResourceManager.getInstance().setScene(this);
+    
     // 创建加载进度UI
     this.createLoadingUI(width, height);
     
@@ -53,13 +56,9 @@ export default class PreloadScene extends Phaser.Scene {
     // 加载题库
     this.loadQuestionBank();
     
-    // 加载公主角色（法师）
+    // 使用ResourceManager加载资源
     this.loadPrincessSprites();
-    
-    // 加载怪物
     this.loadMonsterSprites();
-    
-    // 加载特效
     this.loadEffectSprites();
     
     // 加载音效（将音效文件放入assets/audio/后，取消下面的注释）
@@ -88,41 +87,13 @@ export default class PreloadScene extends Phaser.Scene {
    * 只加载默认角色，其他角色由 ResourceManager 在需要时加载
    */
   private loadAllCharacters(): void {
-    // 只加载默认角色，其他角色由 ResourceManager 在需要时加载
-    const defaultCharacter = { id: 'mage_307', folder: '307' };
+    const resourceManager = ResourceManager.getInstance();
     
-    this.loadCharacterSprites(defaultCharacter.id, defaultCharacter.folder);
+    // 只加载默认角色，其他角色由 ResourceManager 在需要时加载
+    const defaultCharacterId = 'mage_307';
+    resourceManager.preloadCharacter(defaultCharacterId);
     
     console.log('已加载默认角色，其他角色将由 ResourceManager 在需要时加载');
-  }
-  
-  /**
-   * 加载单个角色的精灵
-   */
-  private loadCharacterSprites(characterId: string, folder: string): void {
-    const basePath = `assets/res/player/${folder}/`;
-    const prefix = characterId;
-    
-    // 加载待机动画（12帧）
-    for (let i = 1; i <= 12; i++) {
-      const key = `${prefix}_wait_${i.toString().padStart(3, '0')}`;
-      const file = `${prefix}_wait_${i.toString().padStart(3, '0')}.png`;
-      this.load.image(key, basePath + file);
-    }
-    
-    // 加载攻击动画（12帧）
-    for (let i = 1; i <= 12; i++) {
-      const key = `${prefix}_attack_${i.toString().padStart(3, '0')}`;
-      const file = `${prefix}_attack_${i.toString().padStart(3, '0')}.png`;
-      this.load.image(key, basePath + file);
-    }
-    
-    // 加载受击动画（3帧）
-    for (let i = 1; i <= 3; i++) {
-      const key = `${prefix}_hited_${i.toString().padStart(3, '0')}`;
-      const file = `${prefix}_hited_${i.toString().padStart(3, '0')}.png`;
-      this.load.image(key, basePath + file);
-    }
   }
   
   /**
@@ -131,100 +102,23 @@ export default class PreloadScene extends Phaser.Scene {
    * 只加载前3种怪物，其他怪物由 ResourceManager 在需要时加载
    */
   private loadMonsterSprites(): void {
-    const monsterTypes = [
-      { folder: 'monster', prefix: 'monster' },       // 类型1：基础怪物
-      { folder: 'monster1', prefix: 'monster1' },     // 类型2
-      { folder: 'monster004', prefix: 'monster004' }, // 类型3
-      { folder: 'monster005', prefix: 'monster005' }, // 类型4
-      { folder: 'monster006', prefix: 'monster006' }, // 类型5
-      { folder: 'monster007', prefix: 'monster007' }, // 类型6
-      { folder: 'monster002', prefix: 'monster002' }, // 类型7
-      { folder: 'monster009', prefix: 'monster009' }  // 类型8
-    ];
+    const resourceManager = ResourceManager.getInstance();
     
     // 只加载前3种怪物（前3关），其他延迟加载
-    const initialMonsters = monsterTypes.slice(0, 3);
-    
-    initialMonsters.forEach((type, difficulty) => {
-      this.loadMonsterType(difficulty + 1, type.folder, type.prefix);
-    });
+    for (let difficulty = 1; difficulty <= 3; difficulty++) {
+      resourceManager.preloadMonster(difficulty);
+    }
     
     console.log(`已加载前3种怪物，其他怪物将由 ResourceManager 在需要时加载`);
   }
   
   /**
-   * 加载单个怪物类型
-   */
-  private loadMonsterType(difficulty: number, folder: string, prefix: string): void {
-    const basePath = `assets/res/monster/${folder}/`;
-    
-    // 加载待机动画
-    for (let i = 1; i <= 8; i++) {
-      const key = `monster${difficulty}_wait_${i.toString().padStart(3, '0')}`;
-      const file = `${prefix}_wait_${i.toString().padStart(3, '0')}.png`;
-      this.load.image(key, basePath + file);
-    }
-    
-    // 加载攻击动画
-    for (let i = 1; i <= 8; i++) {
-      const key = `monster${difficulty}_attack_${i.toString().padStart(3, '0')}`;
-      const file = `${prefix}_attack_${i.toString().padStart(3, '0')}.png`;
-      this.load.image(key, basePath + file);
-    }
-    
-    // 加载受击动画
-    for (let i = 1; i <= 3; i++) {
-      const key = `monster${difficulty}_hited_${i.toString().padStart(3, '0')}`;
-      const file = `${prefix}_hited_${i.toString().padStart(3, '0')}.png`;
-      this.load.image(key, basePath + file);
-    }
-  }
-  
-  /**
-   * 加载特效精灵（按角色需求加载）
+   * 加载特效精灵（所有特效在一个图集中）
    */
   private loadEffectSprites(): void {
-    const characters = getAllCharacters();
-    const loadedEffects = new Set<string>(); // 避免重复加载
-    
-    console.log('开始加载角色特效资源...');
-    
-    characters.forEach(character => {
-      // 加载子弹特效
-      if (character.bulletEffect && !loadedEffects.has(character.bulletEffect)) {
-        console.log(`加载子弹特效: ${character.bulletEffect} (${character.name})`);
-        this.loadEffect(character.bulletEffect);
-        loadedEffects.add(character.bulletEffect);
-      }
-      
-      // 加载击中特效
-      if (character.hitEffect && !loadedEffects.has(character.hitEffect)) {
-        console.log(`加载击中特效: ${character.hitEffect} (${character.name})`);
-        this.loadEffect(character.hitEffect);
-        loadedEffects.add(character.hitEffect);
-      }
-    });
-    
-    console.log(`特效加载完成，共加载 ${loadedEffects.size} 个特效`);
-  }
-  
-  /**
-   * 加载单个特效的所有帧
-   */
-  private loadEffect(effectId: string): void {
-    const effectData = getEffectConfig(effectId);
-    if (!effectData) {
-      console.warn(`特效配置不存在: ${effectId}`);
-      return;
-    }
-    
-    const basePath = `assets/res/effect/${effectId}/`;
-    
-    for (let i = 1; i <= effectData.frames; i++) {
-      const key = `${effectId}_${i.toString().padStart(2, '0')}`;
-      const file = `${effectId}_${i.toString().padStart(2, '0')}.png`;
-      this.load.image(key, basePath + file);
-    }
+    const resourceManager = ResourceManager.getInstance();
+    resourceManager.preloadEffects();
+    console.log('特效图集加载完成');
   }
   
   create(): void {
@@ -248,11 +142,11 @@ export default class PreloadScene extends Phaser.Scene {
     this.createPrincessAnimations();
     
     // 创建怪物动画（只为已加载的怪物创建，即前3种）
+    const resourceManager = ResourceManager.getInstance();
     for (let difficulty = 1; difficulty <= 3; difficulty++) {
       // 检查资源是否存在
-      const testKey = `monster${difficulty}_wait_001`;
-      if (this.textures.exists(testKey)) {
-        this.createMonsterAnimations(difficulty);
+      if (resourceManager.isMonsterLoaded(difficulty)) {
+        resourceManager.createMonsterAnimationsForPreload(difficulty);
       }
     }
     
@@ -274,116 +168,11 @@ export default class PreloadScene extends Phaser.Scene {
    * 优化：只创建已加载的角色动画
    */
   private createAllCharacterAnimations(): void {
+    const resourceManager = ResourceManager.getInstance();
     // 只创建默认角色的动画
-    this.createCharacterAnimations('mage_307');
+    resourceManager.createCharacterAnimationsForPreload('mage_307');
   }
   
-  /**
-   * 创建单个角色的动画
-   */
-  private createCharacterAnimations(prefix: string): void {
-    // 检查资源是否已加载
-    const testKey = `${prefix}_wait_001`;
-    if (!this.textures.exists(testKey)) {
-      console.warn(`角色资源未加载: ${prefix}`);
-      return;
-    }
-    
-    // 待机动画
-    const waitFrames: any[] = [];
-    for (let i = 1; i <= 12; i++) {
-      waitFrames.push({ 
-        key: `${prefix}_wait_${i.toString().padStart(3, '0')}`,
-        frame: 0
-      });
-    }
-    this.anims.create({
-      key: `${prefix}_wait`,
-      frames: waitFrames,
-      frameRate: 12,
-      repeat: -1
-    });
-    
-    // 攻击动画
-    const attackFrames: any[] = [];
-    for (let i = 1; i <= 12; i++) {
-      attackFrames.push({ 
-        key: `${prefix}_attack_${i.toString().padStart(3, '0')}`,
-        frame: 0
-      });
-    }
-    this.anims.create({
-      key: `${prefix}_attack`,
-      frames: attackFrames,
-      frameRate: 24,
-      repeat: 0
-    });
-    
-    // 受击动画
-    const hitedFrames: any[] = [];
-    for (let i = 1; i <= 3; i++) {
-      hitedFrames.push({ 
-        key: `${prefix}_hited_${i.toString().padStart(3, '0')}`,
-        frame: 0
-      });
-    }
-    this.anims.create({
-      key: `${prefix}_hited`,
-      frames: hitedFrames,
-      frameRate: 12,
-      repeat: 0
-    });
-  }
-  
-  /**
-   * 创建怪物动画
-   */
-  private createMonsterAnimations(difficulty: number): void {
-    // 待机动画
-    const waitFrames: any[] = [];
-    for (let i = 1; i <= 8; i++) {
-      waitFrames.push({ 
-        key: `monster${difficulty}_wait_${i.toString().padStart(3, '0')}`,
-        frame: 0
-      });
-    }
-    this.anims.create({
-      key: `monster${difficulty}_wait`,
-      frames: waitFrames,
-      frameRate: 8,
-      repeat: -1
-    });
-    
-    // 攻击动画
-    const attackFrames: any[] = [];
-    for (let i = 1; i <= 8; i++) {
-      attackFrames.push({ 
-        key: `monster${difficulty}_attack_${i.toString().padStart(3, '0')}`,
-        frame: 0
-      });
-    }
-    this.anims.create({
-      key: `monster${difficulty}_attack`,
-      frames: attackFrames,
-      frameRate: 16,
-      repeat: 0
-    });
-    
-    // 受击动画
-    const hitedFrames: any[] = [];
-    for (let i = 1; i <= 3; i++) {
-      hitedFrames.push({ 
-        key: `monster${difficulty}_hited_${i.toString().padStart(3, '0')}`,
-        frame: 0
-      });
-    }
-    this.anims.create({
-      key: `monster${difficulty}_hited`,
-      frames: hitedFrames,
-      frameRate: 12,
-      repeat: 0
-    });
-  }
   
   /**
    * 创建特效动画（按角色需求创建）
@@ -391,52 +180,25 @@ export default class PreloadScene extends Phaser.Scene {
   private createEffectAnimations(): void {
     const characters = getAllCharacters();
     const createdAnims = new Set<string>();
+    const resourceManager = ResourceManager.getInstance();
     
     console.log('开始创建特效动画...');
     
     characters.forEach(character => {
       // 创建子弹动画
       if (character.bulletEffect && !createdAnims.has(character.bulletEffect)) {
-        this.createEffectAnimation(character.bulletEffect, true); // true = 循环
+        resourceManager.createEffectAnimationsForPreload(character.bulletEffect, true); // true = 循环
         createdAnims.add(character.bulletEffect);
       }
       
       // 创建击中动画
       if (character.hitEffect && !createdAnims.has(character.hitEffect)) {
-        this.createEffectAnimation(character.hitEffect, false); // false = 不循环
+        resourceManager.createEffectAnimationsForPreload(character.hitEffect, false); // false = 不循环
         createdAnims.add(character.hitEffect);
       }
     });
     
     console.log(`特效动画创建完成，共创建 ${createdAnims.size} 个动画`);
-  }
-  
-  /**
-   * 创建单个特效动画
-   */
-  private createEffectAnimation(effectId: string, repeat: boolean): void {
-    const effectData = getEffectConfig(effectId);
-    if (!effectData) {
-      console.warn(`特效配置不存在: ${effectId}`);
-      return;
-    }
-    
-    const frames: any[] = [];
-    for (let i = 1; i <= effectData.frames; i++) {
-      frames.push({
-        key: `${effectId}_${i.toString().padStart(2, '0')}`,
-        frame: 0
-      });
-    }
-    
-    this.anims.create({
-      key: effectId,
-      frames: frames,
-      frameRate: effectData.frameRate,
-      repeat: repeat ? -1 : 0  // -1循环，0播放一次
-    });
-    
-    console.log(`创建动画: ${effectId} (${effectData.frames}帧, ${effectData.frameRate}fps, ${repeat ? '循环' : '单次'})`);
   }
   
   /**

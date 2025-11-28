@@ -1,0 +1,587 @@
+{
+	"textures": [
+		{
+			"image": "315.png",
+			"format": "RGBA8888",
+			"size": {
+				"w": 1518,
+				"h": 485
+			},
+			"scale": 1,
+			"frames": [
+				{
+					"filename": "mage_315_attack_007.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 288,
+						"h": 250
+					},
+					"spriteSourceSize": {
+						"x": 56,
+						"y": 35,
+						"w": 207,
+						"h": 215
+					},
+					"frame": {
+						"x": 1,
+						"y": 1,
+						"w": 207,
+						"h": 215
+					}
+				},
+				{
+					"filename": "mage_315_attack_008.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 288,
+						"h": 250
+					},
+					"spriteSourceSize": {
+						"x": 60,
+						"y": 35,
+						"w": 206,
+						"h": 215
+					},
+					"frame": {
+						"x": 1,
+						"y": 218,
+						"w": 206,
+						"h": 215
+					}
+				},
+				{
+					"filename": "mage_315_attack_009.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 288,
+						"h": 250
+					},
+					"spriteSourceSize": {
+						"x": 63,
+						"y": 35,
+						"w": 191,
+						"h": 215
+					},
+					"frame": {
+						"x": 210,
+						"y": 1,
+						"w": 191,
+						"h": 215
+					}
+				},
+				{
+					"filename": "mage_315_attack_006.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 288,
+						"h": 250
+					},
+					"spriteSourceSize": {
+						"x": 60,
+						"y": 69,
+						"w": 199,
+						"h": 181
+					},
+					"frame": {
+						"x": 403,
+						"y": 1,
+						"w": 199,
+						"h": 181
+					}
+				},
+				{
+					"filename": "mage_315_attack_005.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 288,
+						"h": 250
+					},
+					"spriteSourceSize": {
+						"x": 77,
+						"y": 93,
+						"w": 172,
+						"h": 157
+					},
+					"frame": {
+						"x": 209,
+						"y": 218,
+						"w": 172,
+						"h": 157
+					}
+				},
+				{
+					"filename": "mage_315_attack_010.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 288,
+						"h": 250
+					},
+					"spriteSourceSize": {
+						"x": 71,
+						"y": 94,
+						"w": 172,
+						"h": 156
+					},
+					"frame": {
+						"x": 604,
+						"y": 1,
+						"w": 172,
+						"h": 156
+					}
+				},
+				{
+					"filename": "mage_315_wait_006.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 288,
+						"h": 250
+					},
+					"spriteSourceSize": {
+						"x": 76,
+						"y": 91,
+						"w": 151,
+						"h": 159
+					},
+					"frame": {
+						"x": 778,
+						"y": 1,
+						"w": 151,
+						"h": 159
+					}
+				},
+				{
+					"filename": "mage_315_wait_005.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 288,
+						"h": 250
+					},
+					"spriteSourceSize": {
+						"x": 75,
+						"y": 91,
+						"w": 149,
+						"h": 159
+					},
+					"frame": {
+						"x": 931,
+						"y": 1,
+						"w": 149,
+						"h": 159
+					}
+				},
+				{
+					"filename": "mage_315_wait_004.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 288,
+						"h": 250
+					},
+					"spriteSourceSize": {
+						"x": 74,
+						"y": 91,
+						"w": 147,
+						"h": 159
+					},
+					"frame": {
+						"x": 1082,
+						"y": 1,
+						"w": 147,
+						"h": 159
+					}
+				},
+				{
+					"filename": "mage_315_wait_011.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 288,
+						"h": 250
+					},
+					"spriteSourceSize": {
+						"x": 77,
+						"y": 91,
+						"w": 145,
+						"h": 159
+					},
+					"frame": {
+						"x": 1231,
+						"y": 1,
+						"w": 145,
+						"h": 159
+					}
+				},
+				{
+					"filename": "mage_315_attack_001.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 288,
+						"h": 250
+					},
+					"spriteSourceSize": {
+						"x": 76,
+						"y": 90,
+						"w": 139,
+						"h": 160
+					},
+					"frame": {
+						"x": 1378,
+						"y": 1,
+						"w": 139,
+						"h": 160
+					}
+				},
+				{
+					"filename": "mage_315_attack_011.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 288,
+						"h": 250
+					},
+					"spriteSourceSize": {
+						"x": 76,
+						"y": 90,
+						"w": 139,
+						"h": 160
+					},
+					"frame": {
+						"x": 1378,
+						"y": 1,
+						"w": 139,
+						"h": 160
+					}
+				},
+				{
+					"filename": "mage_315_attack_004.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 288,
+						"h": 250
+					},
+					"spriteSourceSize": {
+						"x": 98,
+						"y": 107,
+						"w": 151,
+						"h": 143
+					},
+					"frame": {
+						"x": 403,
+						"y": 184,
+						"w": 151,
+						"h": 143
+					}
+				},
+				{
+					"filename": "mage_315_attack_002.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 288,
+						"h": 250
+					},
+					"spriteSourceSize": {
+						"x": 87,
+						"y": 101,
+						"w": 143,
+						"h": 149
+					},
+					"frame": {
+						"x": 556,
+						"y": 184,
+						"w": 143,
+						"h": 149
+					}
+				},
+				{
+					"filename": "mage_315_wait_003.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 288,
+						"h": 250
+					},
+					"spriteSourceSize": {
+						"x": 75,
+						"y": 91,
+						"w": 144,
+						"h": 159
+					},
+					"frame": {
+						"x": 701,
+						"y": 162,
+						"w": 144,
+						"h": 159
+					}
+				},
+				{
+					"filename": "mage_315_wait_007.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 288,
+						"h": 250
+					},
+					"spriteSourceSize": {
+						"x": 76,
+						"y": 90,
+						"w": 143,
+						"h": 160
+					},
+					"frame": {
+						"x": 847,
+						"y": 162,
+						"w": 143,
+						"h": 160
+					}
+				},
+				{
+					"filename": "mage_315_attack_012.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 288,
+						"h": 250
+					},
+					"spriteSourceSize": {
+						"x": 76,
+						"y": 90,
+						"w": 142,
+						"h": 160
+					},
+					"frame": {
+						"x": 992,
+						"y": 162,
+						"w": 142,
+						"h": 160
+					}
+				},
+				{
+					"filename": "mage_315_wait_008.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 288,
+						"h": 250
+					},
+					"spriteSourceSize": {
+						"x": 77,
+						"y": 91,
+						"w": 143,
+						"h": 159
+					},
+					"frame": {
+						"x": 1136,
+						"y": 162,
+						"w": 143,
+						"h": 159
+					}
+				},
+				{
+					"filename": "mage_315_wait_010.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 288,
+						"h": 250
+					},
+					"spriteSourceSize": {
+						"x": 78,
+						"y": 91,
+						"w": 143,
+						"h": 159
+					},
+					"frame": {
+						"x": 1281,
+						"y": 163,
+						"w": 143,
+						"h": 159
+					}
+				},
+				{
+					"filename": "mage_315_attack_003.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 288,
+						"h": 250
+					},
+					"spriteSourceSize": {
+						"x": 87,
+						"y": 101,
+						"w": 144,
+						"h": 149
+					},
+					"frame": {
+						"x": 383,
+						"y": 335,
+						"w": 144,
+						"h": 149
+					}
+				},
+				{
+					"filename": "mage_315_hited_002.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 288,
+						"h": 250
+					},
+					"spriteSourceSize": {
+						"x": 52,
+						"y": 102,
+						"w": 139,
+						"h": 148
+					},
+					"frame": {
+						"x": 529,
+						"y": 335,
+						"w": 139,
+						"h": 148
+					}
+				},
+				{
+					"filename": "mage_315_hited_003.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 288,
+						"h": 250
+					},
+					"spriteSourceSize": {
+						"x": 52,
+						"y": 102,
+						"w": 139,
+						"h": 148
+					},
+					"frame": {
+						"x": 670,
+						"y": 335,
+						"w": 139,
+						"h": 148
+					}
+				},
+				{
+					"filename": "mage_315_hited_001.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 288,
+						"h": 250
+					},
+					"spriteSourceSize": {
+						"x": 76,
+						"y": 90,
+						"w": 139,
+						"h": 160
+					},
+					"frame": {
+						"x": 811,
+						"y": 324,
+						"w": 139,
+						"h": 160
+					}
+				},
+				{
+					"filename": "mage_315_wait_001.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 288,
+						"h": 250
+					},
+					"spriteSourceSize": {
+						"x": 76,
+						"y": 90,
+						"w": 139,
+						"h": 160
+					},
+					"frame": {
+						"x": 952,
+						"y": 324,
+						"w": 139,
+						"h": 160
+					}
+				},
+				{
+					"filename": "mage_315_wait_012.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 288,
+						"h": 250
+					},
+					"spriteSourceSize": {
+						"x": 77,
+						"y": 90,
+						"w": 135,
+						"h": 160
+					},
+					"frame": {
+						"x": 1093,
+						"y": 324,
+						"w": 135,
+						"h": 160
+					}
+				},
+				{
+					"filename": "mage_315_wait_002.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 288,
+						"h": 250
+					},
+					"spriteSourceSize": {
+						"x": 76,
+						"y": 91,
+						"w": 142,
+						"h": 159
+					},
+					"frame": {
+						"x": 1230,
+						"y": 324,
+						"w": 142,
+						"h": 159
+					}
+				},
+				{
+					"filename": "mage_315_wait_009.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 288,
+						"h": 250
+					},
+					"spriteSourceSize": {
+						"x": 78,
+						"y": 92,
+						"w": 142,
+						"h": 158
+					},
+					"frame": {
+						"x": 1374,
+						"y": 324,
+						"w": 142,
+						"h": 158
+					}
+				}
+			]
+		}
+	],
+	"meta": {
+		"app": "https://www.codeandweb.com/texturepacker",
+		"version": "3.0",
+		"smartupdate": "$TexturePacker:SmartUpdate:1dc3a3fc18149db350fa2caa134737a2:074a8093a8c5c0c139ee50ad97553b6e:d3ef534019e0ffaa33458ca134fdccd6$"
+	}
+}

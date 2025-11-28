@@ -1,0 +1,419 @@
+{
+	"textures": [
+		{
+			"image": "monster.png",
+			"format": "RGBA8888",
+			"size": {
+				"w": 484,
+				"h": 374
+			},
+			"scale": 1,
+			"frames": [
+				{
+					"filename": "monster_hited_002.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 256,
+						"h": 222
+					},
+					"spriteSourceSize": {
+						"x": 97,
+						"y": 124,
+						"w": 98,
+						"h": 97
+					},
+					"frame": {
+						"x": 1,
+						"y": 1,
+						"w": 98,
+						"h": 97
+					}
+				},
+				{
+					"filename": "monster_hited_003.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 256,
+						"h": 222
+					},
+					"spriteSourceSize": {
+						"x": 97,
+						"y": 124,
+						"w": 98,
+						"h": 97
+					},
+					"frame": {
+						"x": 1,
+						"y": 100,
+						"w": 98,
+						"h": 97
+					}
+				},
+				{
+					"filename": "monster_attack_004.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 256,
+						"h": 222
+					},
+					"spriteSourceSize": {
+						"x": 88,
+						"y": 127,
+						"w": 93,
+						"h": 94
+					},
+					"frame": {
+						"x": 1,
+						"y": 199,
+						"w": 93,
+						"h": 94
+					}
+				},
+				{
+					"filename": "monster_attack_008.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 256,
+						"h": 222
+					},
+					"spriteSourceSize": {
+						"x": 53,
+						"y": 144,
+						"w": 127,
+						"h": 77
+					},
+					"frame": {
+						"x": 1,
+						"y": 295,
+						"w": 127,
+						"h": 77
+					}
+				},
+				{
+					"filename": "monster_wait_007.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 256,
+						"h": 222
+					},
+					"spriteSourceSize": {
+						"x": 84,
+						"y": 128,
+						"w": 94,
+						"h": 93
+					},
+					"frame": {
+						"x": 96,
+						"y": 199,
+						"w": 94,
+						"h": 93
+					}
+				},
+				{
+					"filename": "monster_attack_007.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 256,
+						"h": 222
+					},
+					"spriteSourceSize": {
+						"x": 53,
+						"y": 153,
+						"w": 123,
+						"h": 68
+					},
+					"frame": {
+						"x": 130,
+						"y": 294,
+						"w": 123,
+						"h": 68
+					}
+				},
+				{
+					"filename": "monster_attack_003.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 256,
+						"h": 222
+					},
+					"spriteSourceSize": {
+						"x": 86,
+						"y": 128,
+						"w": 93,
+						"h": 93
+					},
+					"frame": {
+						"x": 101,
+						"y": 1,
+						"w": 93,
+						"h": 93
+					}
+				},
+				{
+					"filename": "monster_wait_008.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 256,
+						"h": 222
+					},
+					"spriteSourceSize": {
+						"x": 84,
+						"y": 129,
+						"w": 95,
+						"h": 92
+					},
+					"frame": {
+						"x": 101,
+						"y": 96,
+						"w": 95,
+						"h": 92
+					}
+				},
+				{
+					"filename": "monster_wait_006.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 256,
+						"h": 222
+					},
+					"spriteSourceSize": {
+						"x": 85,
+						"y": 129,
+						"w": 93,
+						"h": 92
+					},
+					"frame": {
+						"x": 196,
+						"y": 1,
+						"w": 93,
+						"h": 92
+					}
+				},
+				{
+					"filename": "monster_wait_001.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 256,
+						"h": 222
+					},
+					"spriteSourceSize": {
+						"x": 84,
+						"y": 131,
+						"w": 95,
+						"h": 91
+					},
+					"frame": {
+						"x": 192,
+						"y": 190,
+						"w": 95,
+						"h": 91
+					}
+				},
+				{
+					"filename": "monster_wait_004.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 256,
+						"h": 222
+					},
+					"spriteSourceSize": {
+						"x": 85,
+						"y": 131,
+						"w": 93,
+						"h": 90
+					},
+					"frame": {
+						"x": 255,
+						"y": 283,
+						"w": 93,
+						"h": 90
+					}
+				},
+				{
+					"filename": "monster_attack_002.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 256,
+						"h": 222
+					},
+					"spriteSourceSize": {
+						"x": 86,
+						"y": 130,
+						"w": 93,
+						"h": 91
+					},
+					"frame": {
+						"x": 198,
+						"y": 95,
+						"w": 93,
+						"h": 91
+					}
+				},
+				{
+					"filename": "monster_wait_005.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 256,
+						"h": 222
+					},
+					"spriteSourceSize": {
+						"x": 85,
+						"y": 130,
+						"w": 93,
+						"h": 91
+					},
+					"frame": {
+						"x": 291,
+						"y": 1,
+						"w": 93,
+						"h": 91
+					}
+				},
+				{
+					"filename": "monster_attack_001.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 256,
+						"h": 222
+					},
+					"spriteSourceSize": {
+						"x": 85,
+						"y": 133,
+						"w": 94,
+						"h": 89
+					},
+					"frame": {
+						"x": 289,
+						"y": 188,
+						"w": 94,
+						"h": 89
+					}
+				},
+				{
+					"filename": "monster_hited_001.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 256,
+						"h": 222
+					},
+					"spriteSourceSize": {
+						"x": 85,
+						"y": 133,
+						"w": 94,
+						"h": 88
+					},
+					"frame": {
+						"x": 293,
+						"y": 94,
+						"w": 94,
+						"h": 88
+					}
+				},
+				{
+					"filename": "monster_wait_002.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 256,
+						"h": 222
+					},
+					"spriteSourceSize": {
+						"x": 85,
+						"y": 133,
+						"w": 94,
+						"h": 88
+					},
+					"frame": {
+						"x": 389,
+						"y": 1,
+						"w": 94,
+						"h": 88
+					}
+				},
+				{
+					"filename": "monster_wait_003.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 256,
+						"h": 222
+					},
+					"spriteSourceSize": {
+						"x": 85,
+						"y": 133,
+						"w": 93,
+						"h": 88
+					},
+					"frame": {
+						"x": 389,
+						"y": 91,
+						"w": 93,
+						"h": 88
+					}
+				},
+				{
+					"filename": "monster_attack_005.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 256,
+						"h": 222
+					},
+					"spriteSourceSize": {
+						"x": 84,
+						"y": 134,
+						"w": 93,
+						"h": 87
+					},
+					"frame": {
+						"x": 389,
+						"y": 181,
+						"w": 93,
+						"h": 87
+					}
+				},
+				{
+					"filename": "monster_attack_006.png",
+					"rotated": false,
+					"trimmed": true,
+					"sourceSize": {
+						"w": 256,
+						"h": 222
+					},
+					"spriteSourceSize": {
+						"x": 62,
+						"y": 156,
+						"w": 113,
+						"h": 65
+					},
+					"frame": {
+						"x": 350,
+						"y": 279,
+						"w": 113,
+						"h": 65
+					}
+				}
+			]
+		}
+	],
+	"meta": {
+		"app": "https://www.codeandweb.com/texturepacker",
+		"version": "3.0",
+		"smartupdate": "$TexturePacker:SmartUpdate:d3c1c80f066e272e1b66faa0b2365361:b71b226e46ba41679d9a2b9156c51823:6ec6ef82eac74a14701d8066d2bc065f$"
+	}
+}

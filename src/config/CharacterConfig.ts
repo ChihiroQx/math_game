@@ -43,7 +43,7 @@ export const CHARACTERS: Record<string, CharacterData> = {
     name: '艾莉丝',
     description: '冰霜魔法，属性均衡',
     spritePrefix: 'mage_307',
-    assetPath: 'assets/res/player/307',
+    assetPath: 'assets/res/player_atlas/307', // 更新为atlas路径
     
     maxHealth: 100,
     attackPower: 100,    // 基准攻击力
@@ -69,7 +69,7 @@ export const CHARACTERS: Record<string, CharacterData> = {
     name: '莉莉丝',
     description: '光明魔法，攻击+20%，生命-10%',
     spritePrefix: 'mage_119',
-    assetPath: 'assets/res/player/119',
+    assetPath: 'assets/res/player_atlas/119', // 更新为atlas路径
     
     maxHealth: 90,
     attackPower: 120,    // 攻击力+20%
@@ -95,7 +95,7 @@ export const CHARACTERS: Record<string, CharacterData> = {
     name: '艾莎',
     description: '暗影魔法，生命+30%，攻击-10%',
     spritePrefix: 'mage_303',
-    assetPath: 'assets/res/player/303',
+    assetPath: 'assets/res/player_atlas/303', // 更新为atlas路径
     
     maxHealth: 130,
     attackPower: 90,     // 攻击力-10%
@@ -121,7 +121,7 @@ export const CHARACTERS: Record<string, CharacterData> = {
     name: '米娅',
     description: '粉色魔法，攻速+30%，攻击-15%',
     spritePrefix: 'mage_311',
-    assetPath: 'assets/res/player/311',
+    assetPath: 'assets/res/player_atlas/311', // 更新为atlas路径
     
     maxHealth: 100,
     attackPower: 85,
@@ -141,13 +141,13 @@ export const CHARACTERS: Record<string, CharacterData> = {
   },
   
   // 星辉术士 - 全能型
-  'mage_334': {
+  'mage_335': {
     id: 'mage_335',
     title: '星辉术士',
     name: '诺娅',
     description: '星辰之力，全属性+10%',
     spritePrefix: 'mage_335',
-    assetPath: 'assets/res/player/335',
+    assetPath: 'assets/res/player_atlas/335', // 更新为atlas路径
     
     maxHealth: 110,
     attackPower: 110,
@@ -173,7 +173,7 @@ export const CHARACTERS: Record<string, CharacterData> = {
     name: '露娜',
     description: '最强战士，攻击+30%，生命+20%',
     spritePrefix: 'mage_315',
-    assetPath: 'assets/res/player/315',
+    assetPath: 'assets/res/player_atlas/315', // 更新为atlas路径
     
     maxHealth: 120, 
     attackPower: 130,    // 最高攻击力
@@ -212,5 +212,14 @@ export function getAllCharacters(): CharacterData[] {
  */
 export function getDefaultCharacter(): CharacterData {
   return CHARACTERS['mage_307'];
+}
+
+/**
+ * 从assetPath提取文件夹名（atlas key）
+ * 例如: 'assets/res/player_atlas/307' -> '307'
+ */
+export function extractFolderFromAssetPath(assetPath: string): string {
+  const parts = assetPath.split('/');
+  return parts[parts.length - 1];
 }
 

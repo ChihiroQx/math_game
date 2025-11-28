@@ -30,7 +30,7 @@ export const MONSTERS: Record<string, MonsterData> = {
     id: 'monster_1',
     name: '绿色史莱姆',
     spritePrefix: 'monster1',
-    assetPath: 'assets/res/monster/monster1',
+    assetPath: 'assets/res/monster_atlas/monster1', // 更新为atlas路径
     
     baseHealth: 50,
     baseDamage: 10,
@@ -47,7 +47,7 @@ export const MONSTERS: Record<string, MonsterData> = {
     id: 'monster_2',
     name: '蓝色史莱姆',
     spritePrefix: 'monster004',
-    assetPath: 'assets/res/monster/monster004',
+    assetPath: 'assets/res/monster_atlas/monster004', // 更新为atlas路径
     
     baseHealth: 60,
     baseDamage: 12,
@@ -64,7 +64,7 @@ export const MONSTERS: Record<string, MonsterData> = {
     id: 'monster_3',
     name: '紫色史莱姆',
     spritePrefix: 'monster005',
-    assetPath: 'assets/res/monster/monster005',
+    assetPath: 'assets/res/monster_atlas/monster005', // 更新为atlas路径
     
     baseHealth: 70,
     baseDamage: 15,
@@ -81,7 +81,7 @@ export const MONSTERS: Record<string, MonsterData> = {
     id: 'monster_4',
     name: '红色史莱姆',
     spritePrefix: 'monster006',
-    assetPath: 'assets/res/monster/monster006',
+    assetPath: 'assets/res/monster_atlas/monster006', // 更新为atlas路径
     
     baseHealth: 80,
     baseDamage: 18,
@@ -98,7 +98,7 @@ export const MONSTERS: Record<string, MonsterData> = {
     id: 'monster_5',
     name: '黄色史莱姆',
     spritePrefix: 'monster007',
-    assetPath: 'assets/res/monster/monster007',
+    assetPath: 'assets/res/monster_atlas/monster007', // 更新为atlas路径
     
     baseHealth: 65,
     baseDamage: 14,
@@ -115,7 +115,7 @@ export const MONSTERS: Record<string, MonsterData> = {
     id: 'monster_6',
     name: '灰色史莱姆',
     spritePrefix: 'monster002',
-    assetPath: 'assets/res/monster/monster002',
+    assetPath: 'assets/res/monster_atlas/monster002', // 更新为atlas路径
     
     baseHealth: 100,        // 高生命
     baseDamage: 12,
@@ -132,7 +132,7 @@ export const MONSTERS: Record<string, MonsterData> = {
     id: 'monster_7',
     name: '黑色史莱姆',
     spritePrefix: 'monster009',
-    assetPath: 'assets/res/monster/monster009',
+    assetPath: 'assets/res/monster_atlas/monster009', // 更新为atlas路径
     
     baseHealth: 90,
     baseDamage: 20,
@@ -149,7 +149,7 @@ export const MONSTERS: Record<string, MonsterData> = {
     id: 'monster_8',
     name: '彩色史莱姆',
     spritePrefix: 'monster009',
-    assetPath: 'assets/res/monster/monster009',
+    assetPath: 'assets/res/monster_atlas/monster009', // 更新为atlas路径
     
     baseHealth: 120,
     baseDamage: 25,
@@ -196,5 +196,24 @@ export function getRandomMonsterIdByDifficulty(difficulty: number): string {
   
   const randomIndex = Math.floor(Math.random() * availableMonsters.length);
   return availableMonsters[randomIndex];
+}
+
+/**
+ * 根据难度获取怪物ID（1-8对应monster_1到monster_8）
+ */
+export function getMonsterIdByDifficulty(difficulty: number): string {
+  if (difficulty < 1 || difficulty > 8) {
+    throw new Error(`无效的怪物难度: ${difficulty}`);
+  }
+  return `monster_${difficulty}`;
+}
+
+/**
+ * 从assetPath提取文件夹名（atlas key）
+ * 例如: 'assets/res/player_atlas/307' -> '307'
+ */
+export function extractFolderFromAssetPath(assetPath: string): string {
+  const parts = assetPath.split('/');
+  return parts[parts.length - 1];
 }
 

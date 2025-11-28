@@ -45,9 +45,14 @@ export class Princess {
     this.ATTACK_DELAY = this.characterConfig.attackDelay;
     this.BULLET_SPEED = this.characterConfig.bulletSpeed;
     
-    // 创建角色精灵
-    const firstFrameKey = `${this.spritePrefix}_wait_001`;
-    this.sprite = scene.add.sprite(x, y, firstFrameKey);
+    // 创建角色精灵（使用Atlas）
+    // 从配置的assetPath提取文件夹名（atlas key）
+    const assetPathParts = this.characterConfig.assetPath.split('/');
+    const atlasKey = assetPathParts[assetPathParts.length - 1]; // 提取最后一个部分作为文件夹名
+    const firstFrameName = `${this.spritePrefix}_wait_001.png`;
+    
+    // 使用atlas创建sprite
+    this.sprite = scene.add.sprite(x, y, atlasKey, firstFrameName);
     this.sprite.setScale(this.characterConfig.scale);
     this.sprite.setOrigin(0.5, 1);
     
@@ -202,12 +207,12 @@ export class Princess {
     
     // 延迟发射魔法弹（等攻击动画播放到一半）
     this.scene.time.delayedCall(this.ATTACK_DELAY, () => {
-      // 使用特效精灵创建子弹
+      // 使用特效精灵创建子弹（使用统一特效图集）
       const bulletEffect = this.characterConfig.bulletEffect;
-      const bulletFirstFrame = `${bulletEffect}_01`;
+      const bulletFirstFrame = `${bulletEffect}/${bulletEffect}_01.png`; // 帧名格式：effect_XXX/effect_XXX_XX.png
       
-      // 创建子弹精灵
-      const bullet = this.scene.add.sprite(startX, startY, bulletFirstFrame);
+      // 创建子弹精灵（使用统一特效图集，atlas key是'effect'）
+      const bullet = this.scene.add.sprite(startX, startY, 'effect', bulletFirstFrame);
       bullet.setScale(this.characterConfig.effectScale || 1.0);
       bullet.setDepth(50); // 显示在角色前面
       
@@ -271,10 +276,10 @@ export class Princess {
    */
   private createHitEffect(x: number, y: number): void {
     const hitEffect = this.characterConfig.hitEffect;
-    const hitFirstFrame = `${hitEffect}_01`;
+    const hitFirstFrame = `${hitEffect}/${hitEffect}_01.png`; // 帧名格式：effect_XXX/effect_XXX_XX.png
     
-    // 创建爆炸精灵
-    const explosion = this.scene.add.sprite(x, y, hitFirstFrame);
+    // 创建爆炸精灵（使用统一特效图集，atlas key是'effect'）
+    const explosion = this.scene.add.sprite(x, y, 'effect', hitFirstFrame);
     explosion.setScale(this.characterConfig.effectScale || 1.0);
     explosion.setDepth(100); // 显示在最前面
     explosion.setBlendMode(Phaser.BlendModes.ADD); // 增亮混合

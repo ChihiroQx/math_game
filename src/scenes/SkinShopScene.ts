@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import DataManager from '../managers/DataManager';
 import ResourceManager from '../managers/ResourceManager';
 import ButtonFactory from '../utils/ButtonFactory';
-import { CHARACTERS, CharacterData, getAllCharacters } from '../config/CharacterConfig';
+import { CHARACTERS, CharacterData, getAllCharacters, extractFolderFromAssetPath } from '../config/CharacterConfig';
 
 /**
  * 皮肤商店场景
@@ -69,21 +69,26 @@ export default class SkinShopScene extends Phaser.Scene {
       return;
     }
     
-    // 批量加载所有角色资源
-    try {
-      console.log(`开始加载 ${charactersToLoad.length} 个角色资源...`);
-      await resourceManager.loadCharacters(charactersToLoad);
-      console.log(`角色资源加载完成，共加载 ${charactersToLoad.length} 个角色`);
-      
-      // 延迟更新预览，确保资源完全可用
-      charactersToLoad.forEach((id) => {
+    // 批量加载所有角色资源（逐个加载，避免一个失败影响全部）
+    console.log(`开始加载 ${charactersToLoad.length} 个角色资源...`);
+    
+    const loadPromises = charactersToLoad.map(async (id) => {
+      try {
+        await resourceManager.loadCharacter(id);
+        // 加载成功后，延迟更新预览
         this.time.delayedCall(50, () => {
           this.updateCharacterPreview(id);
         });
-      });
-    } catch (error) {
-      console.error('加载角色资源失败:', error);
-    }
+        return { id, success: true };
+      } catch (error) {
+        console.error(`加载角色资源失败: ${id}`, error);
+        return { id, success: false, error };
+      }
+    });
+    
+    const results = await Promise.all(loadPromises);
+    const successCount = results.filter(r => r.success).length;
+    console.log(`角色资源加载完成，成功: ${successCount}/${charactersToLoad.length}`);
   }
   
   /**
@@ -102,16 +107,25 @@ export default class SkinShopScene extends Phaser.Scene {
       return;
     }
     
-    const spriteKey = `${character.spritePrefix}_wait_001`;
+    // 从assetPath提取atlas key（文件夹名）
+    const atlasKey = extractFolderFromAssetPath(character.assetPath);
+    const firstFrameName = `${character.spritePrefix}_wait_001.png`; // 完整帧名，包含.png
     const waitAnimKey = `${character.spritePrefix}_wait`;
     
-    // 检查资源是否存在
-    if (!this.textures.exists(spriteKey)) {
-      console.warn(`资源不存在: ${spriteKey}, characterId: ${characterId}, spritePrefix: ${character.spritePrefix}`);
+    // 检查atlas是否存在
+    if (!this.textures.exists(atlasKey)) {
+      console.warn(`Atlas不存在: ${atlasKey}, characterId: ${characterId}`);
       return;
     }
     
-    console.log(`准备更新预览: ${characterId}, spriteKey: ${spriteKey}`);
+    // 检查帧是否存在
+    const atlas = this.textures.get(atlasKey);
+    if (!atlas.has(firstFrameName)) {
+      console.warn(`帧不存在: ${firstFrameName} in atlas ${atlasKey}`);
+      return;
+    }
+    
+    console.log(`准备更新预览: ${characterId}, atlasKey: ${atlasKey}, frame: ${firstFrameName}`);
     
     // 移除占位符和加载文本
     const toRemove: Phaser.GameObjects.GameObject[] = [];
@@ -131,8 +145,8 @@ export default class SkinShopScene extends Phaser.Scene {
     // 获取容器高度（从卡片配置中获取）
     const cardHeight = 165; // 与 createSkinCard 中的 cardHeight 保持一致
     
-    // 创建预览精灵
-    const previewSprite = this.add.sprite(80, cardHeight - 15, spriteKey);
+    // 创建预览精灵（使用atlas key和完整帧名）
+    const previewSprite = this.add.sprite(80, cardHeight - 15, atlasKey, firstFrameName);
     previewSprite.setScale(character.scale * 1.25);
     previewSprite.setOrigin(0.5, 1);
     
@@ -286,6 +300,27 @@ export default class SkinShopScene extends Phaser.Scene {
   }
   
   /**
+   * 创建占位符（资源未加载时显示）
+   */
+  private createPlaceholder(container: Phaser.GameObjects.Container, height: number): void {
+    const placeholder = this.add.graphics();
+    placeholder.fillStyle(0x888888, 0.5);
+    placeholder.fillRect(40, height - 60, 80, 80);
+    placeholder.setAlpha(0.5);
+    placeholder.setData('isPlaceholder', true);
+    container.add(placeholder);
+    
+    const loadingText = this.add.text(80, height - 20, '加载中...', {
+      fontFamily: 'Arial, Microsoft YaHei',
+      fontSize: '12px',
+      color: '#FFFFFF'
+    });
+    loadingText.setOrigin(0.5);
+    loadingText.setData('isLoadingText', true);
+    container.add(loadingText);
+  }
+  
+  /**
    * 创建皮肤列表
    */
   private createSkinList(width: number, height: number): void {
@@ -346,38 +381,33 @@ export default class SkinShopScene extends Phaser.Scene {
     container.add(cardBg);
     
     // 角色预览 - 显示真实的角色待机动画
-    const spriteKey = `${character.spritePrefix}_wait_001`;
+    // 从assetPath提取atlas key（文件夹名）
+    const atlasKey = extractFolderFromAssetPath(character.assetPath);
+    const firstFrameName = `${character.spritePrefix}_wait_001.png`; // 完整帧名，包含.png
     const waitAnimKey = `${character.spritePrefix}_wait`;
     
-    // 检查资源是否存在
-    if (this.textures.exists(spriteKey)) {
-      const previewSprite = this.add.sprite(80, height - 15, spriteKey);
-      previewSprite.setScale(character.scale * 1.25); // 稍微缩小适应新高度
-      previewSprite.setOrigin(0.5, 1); // 底部中心锚点
-      
-      // 播放待机动画（如果动画存在）
-      if (this.anims.exists(waitAnimKey)) {
-        previewSprite.play(waitAnimKey);
+    // 检查atlas是否存在
+    if (this.textures.exists(atlasKey)) {
+      const atlas = this.textures.get(atlasKey);
+      // 检查帧是否存在
+      if (atlas.has(firstFrameName)) {
+        const previewSprite = this.add.sprite(80, height - 15, atlasKey, firstFrameName);
+        previewSprite.setScale(character.scale * 1.25); // 稍微缩小适应新高度
+        previewSprite.setOrigin(0.5, 1); // 底部中心锚点
+        
+        // 播放待机动画（如果动画存在）
+        if (this.anims.exists(waitAnimKey)) {
+          previewSprite.play(waitAnimKey);
+        }
+        
+        container.add(previewSprite);
+      } else {
+        // 帧不存在，显示占位符
+        this.createPlaceholder(container, height);
       }
-      
-      container.add(previewSprite);
     } else {
       // 资源未加载，显示占位符
-      const placeholder = this.add.graphics();
-      placeholder.fillStyle(0x888888, 0.5);
-      placeholder.fillRect(40, height - 60, 80, 80);
-      placeholder.setAlpha(0.5);
-      placeholder.setData('isPlaceholder', true);
-      container.add(placeholder);
-      
-      const loadingText = this.add.text(80, height - 20, '加载中...', {
-        fontFamily: 'Arial, Microsoft YaHei',
-        fontSize: '12px',
-        color: '#FFFFFF'
-      });
-      loadingText.setOrigin(0.5);
-      loadingText.setData('isLoadingText', true);
-      container.add(loadingText);
+      this.createPlaceholder(container, height);
     }
     
     // 称号-名字（适中的描边和阴影）

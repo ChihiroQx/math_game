@@ -67,9 +67,13 @@ export class Monster {
     const monsterIdNum = monsterId.split('_')[1];
     this.animPrefix = `monster${monsterIdNum}`;
     
-    // 创建怪物精灵
-    const firstFrame = `${this.animPrefix}_wait_001`;
-    this.sprite = scene.add.sprite(x, y, firstFrame);
+    // 创建怪物精灵（使用Atlas）
+    // 怪物atlas key是monster1-monster8（用于Phaser纹理）
+    const atlasKey = `monster${difficulty}`;
+    const firstFrameName = `${this.spritePrefix}_wait_001.png`; // Atlas帧名包含.png
+    
+    // 使用atlas创建sprite
+    this.sprite = scene.add.sprite(x, y, atlasKey, firstFrameName);
     this.sprite.setScale(0.6); // 缩小到0.6倍，更协调
     this.sprite.setFlipX(false); // 不翻转，面向左侧（公主方向）
     this.sprite.setOrigin(0.5, 1); // 设置锚点为底部中心，脚底作为定位点

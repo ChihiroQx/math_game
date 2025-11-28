@@ -106,6 +106,9 @@ export default class GamePlayScene extends Phaser.Scene {
     // 如果暂停，不更新游戏逻辑
     if (this.isPaused) return;
     
+    // 检查公主是否已初始化
+    if (!this.princess) return;
+    
     // 更新计时器
     this.timerManager.update(delta);
     this.updateTimerDisplay();
@@ -408,6 +411,9 @@ export default class GamePlayScene extends Phaser.Scene {
    * 更新怪物
    */
   private updateMonsters(delta: number): void {
+    // 检查公主是否已初始化
+    if (!this.princess) return;
+    
     for (const monster of this.activeMonsters) {
       if (!monster.isAlive) continue;
       
@@ -426,6 +432,7 @@ export default class GamePlayScene extends Phaser.Scene {
    */
   private onMonsterReachPrincess(monster: Monster): void {
     if (!monster.isAlive) return;
+    if (!this.princess) return; // 检查公主是否已初始化
     
     // 怪物攻击公主（使用新的攻击方法）
     const didAttack = monster.attackPrincess(() => {
@@ -767,6 +774,9 @@ export default class GamePlayScene extends Phaser.Scene {
       baseDamage = 45; // 高关卡伤害略低，增加挑战
     }
     
+    // 检查公主是否已初始化
+    if (!this.princess) return;
+    
     const damage = Math.floor(baseDamage * (this.princess.attackPower / 100));
     
     // 攻击最近的怪物
@@ -843,6 +853,9 @@ export default class GamePlayScene extends Phaser.Scene {
    * 找到最近的怪物
    */
   private findNearestMonster(): Monster | null {
+    // 检查公主是否已初始化
+    if (!this.princess) return null;
+    
     let nearest: Monster | null = null;
     let minDistance = Infinity;
     
@@ -956,6 +969,12 @@ export default class GamePlayScene extends Phaser.Scene {
   private onGameOver(victory: boolean): void {
     // 停止计时
     this.timerManager.stopTimer();
+    
+    // 检查公主是否已初始化
+    if (!this.princess) {
+      console.warn('公主未初始化，无法计算血量');
+      return;
+    }
     
     // 根据主角剩余血量计算星星
     const healthPercentage = victory ? (this.princess.currentHealth / this.princess.maxHealth) * 100 : 0;

@@ -32,7 +32,24 @@ module.exports = {
     }),
     new CopyWebpackPlugin({
       patterns: [
-        { from: 'assets', to: 'assets', noErrorOnMissing: true }
+        { 
+          from: 'assets', 
+          to: 'assets', 
+          noErrorOnMissing: true,
+          // 排除非图集资源（只保留图集文件夹）
+          globOptions: {
+            ignore: [
+              // 排除原始序列帧文件夹
+              '**/res/player/**',
+              '**/res/monster/**',
+              '**/res/effect/**',
+              // 保留图集文件夹
+              // '**/res/player_atlas/**',  // 保留
+              // '**/res/monster_atlas/**', // 保留
+              // '**/res/effect_atlas/**'   // 保留
+            ]
+          }
+        }
       ]
     })
   ],
