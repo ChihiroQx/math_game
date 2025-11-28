@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import AudioManager from '../managers/AudioManager';
 import TimerManager from '../managers/TimerManager';
 import DataManager from '../managers/DataManager';
+import { AccountManager } from '../managers/AccountManager';
 import ButtonFactory from '../utils/ButtonFactory';
 import DOMUtils from '../utils/DOMUtils';
 import { LeaderboardManager } from '../managers/LeaderboardManager';
@@ -314,8 +315,10 @@ export default class SettingsScene extends Phaser.Scene {
       strokeThickness: 3
     }).setOrigin(0, 0.5);
     
-    // 当前名字
-    const nameText = this.add.text(x + 10, y, data.playerName, {
+    // 当前名字（从账号获取）
+    const accountManager = AccountManager.getInstance();
+    const currentPlayerName = accountManager.getPlayerName() || '未设置';
+    const nameText = this.add.text(x + 10, y, currentPlayerName, {
       fontFamily: getTitleFont(),
       fontSize: '32px',
       color: '#ffffff',
@@ -351,6 +354,9 @@ export default class SettingsScene extends Phaser.Scene {
     const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.7);
     overlay.setOrigin(0);
     overlay.setDepth(100);
+    // 设置遮罩层不可交互，防止点击遮罩层时触发事件
+    overlay.setInteractive({ useHandCursor: false });
+    // 点击遮罩层时不关闭对话框（因为输入框在遮罩层上方）
     
     // 对话框背景
     const dialogWidth = 500;
@@ -358,6 +364,8 @@ export default class SettingsScene extends Phaser.Scene {
     const dialogBg = this.add.rectangle(width / 2, height / 2, dialogWidth, dialogHeight, 0xFFFFFF);
     dialogBg.setStrokeStyle(4, 0xFFD700);
     dialogBg.setDepth(101);
+    // 对话框背景不可交互，防止点击时触发事件
+    dialogBg.setInteractive({ useHandCursor: false });
     
     // 标题
     const titleText = this.add.text(width / 2, height / 2 - 100, '修改名字', {
@@ -397,10 +405,30 @@ export default class SettingsScene extends Phaser.Scene {
     inputElement.style.outline = 'none';
     inputElement.style.padding = '0 10px';
     inputElement.style.boxSizing = 'border-box';
-    inputElement.value = DataManager.getInstance().playerData.playerName;
+    const accountManager = AccountManager.getInstance();
+    inputElement.value = accountManager.getPlayerName() || '';
+    
+    // 阻止输入框的所有事件冒泡，防止触发 Phaser 事件导致对话框消失
+    const stopPropagation = (e: Event) => {
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+    };
+    
+    inputElement.addEventListener('mousedown', stopPropagation, true);
+    inputElement.addEventListener('mouseup', stopPropagation, true);
+    inputElement.addEventListener('click', stopPropagation, true);
+    inputElement.addEventListener('focus', stopPropagation, true);
+    inputElement.addEventListener('focusin', stopPropagation, true);
+    inputElement.addEventListener('touchstart', stopPropagation, true);
+    inputElement.addEventListener('touchend', stopPropagation, true);
+    
     document.body.appendChild(inputElement);
-    inputElement.focus();
-    inputElement.select();
+    
+    // 延迟聚焦，确保对话框已经完全渲染
+    setTimeout(() => {
+      inputElement.focus();
+      inputElement.select();
+    }, 100);
     
     // 监听窗口大小变化，更新输入框位置
     const updateInputPosition = () => {
@@ -425,43 +453,14 @@ export default class SettingsScene extends Phaser.Scene {
           return;
         }
         
-        // 检查名字是否已存在（如果配置了 Supabase）
-        if (LeaderboardManager.isConfigured()) {
-          // 检查网络状态
-          if (!NetworkUtils.isOnline()) {
-            alert('网络不可用，无法验证名字。游戏将使用本地模式。');
-            // 网络不可用时，允许使用名字，但不注册到服务器
-          } else {
-            const leaderboardManager = LeaderboardManager.getInstance();
-            const currentName = DataManager.getInstance().playerData.playerName;
-            
-            // 如果名字改变了，需要检查
-            if (name !== currentName) {
-              try {
-                const exists = await leaderboardManager.checkPlayerNameExists(name);
-                if (exists) {
-                  alert('这个名字已经被使用了，请换一个名字吧！');
-                  return;
-                }
-                
-                // 注册新名字
-                const registered = await leaderboardManager.registerPlayerName(name);
-                if (!registered) {
-                  alert('名字注册失败，可能是网络问题。游戏将使用本地模式。');
-                  // 网络错误时允许继续，但不注册到服务器
-                }
-              } catch (error) {
-                const errorMsg = NetworkUtils.getNetworkErrorMessage(error);
-                alert(`网络错误：${errorMsg}\n游戏将使用本地模式。`);
-                // 网络错误时允许继续
-              }
-            }
-          }
-        }
+        // 使用 AccountManager 更新账号名字
+        const accountManager = AccountManager.getInstance();
+        const result = await accountManager.updatePlayerName(name);
         
-        // 保存名字
-        DataManager.getInstance().playerData.playerName = name;
-        DataManager.getInstance().saveData();
+        if (!result.success) {
+          alert(result.message);
+          return;
+        }
         
         // 移除事件监听和输入框
         window.removeEventListener('resize', updateInputPosition);

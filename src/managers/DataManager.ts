@@ -1,8 +1,10 @@
+import { AccountManager } from './AccountManager';
+
 /**
  * 玩家数据接口
  */
 export interface PlayerData {
-  playerName: string;
+  playerName: string; // 已废弃，使用 AccountManager.getPlayerName() 获取
   coins: number;
   totalStars: number;
   levelProgress: LevelProgress[];
@@ -373,7 +375,7 @@ export default class DataManager {
     const record: InfiniteModeRecord = {
       world,
       level,
-      playerName: this.playerData.playerName || '勇敢的小朋友',
+      playerName: AccountManager.getInstance().getPlayerName() || '勇敢的小朋友',
       killCount,
       survivalTime,
       timestamp: Date.now()

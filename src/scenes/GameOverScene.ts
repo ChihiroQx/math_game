@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import DataManager from '../managers/DataManager';
+import { AccountManager } from '../managers/AccountManager';
 import ButtonFactory from '../utils/ButtonFactory';
 import { LeaderboardManager } from '../managers/LeaderboardManager';
 import { getTitleFont, getBodyFont } from '../config/FontConfig';
@@ -33,9 +34,9 @@ export default class GameOverScene extends Phaser.Scene {
       const dataManager = DataManager.getInstance();
       const playerData = dataManager.playerData;
       
-      // 计算总星数和总金币
-      let totalStars = 0;
-      let totalCoins = playerData.coins;
+      // 使用已保存的总星数和总金币（saveLevelProgress已经更新了这些值）
+      const totalStars = playerData.totalStars;
+      const totalCoins = playerData.coins;
       let maxWorld = 0;
       let maxLevel = 0;
       
@@ -43,7 +44,6 @@ export default class GameOverScene extends Phaser.Scene {
       for (let world = 1; world <= 3; world++) {
         for (let level = 1; level <= 5; level++) {
           const stars = dataManager.getLevelStars(world, level);
-          totalStars += stars;
           
           // 如果这关有星星（已通关），更新最大通关
           if (stars > 0) {
@@ -57,7 +57,7 @@ export default class GameOverScene extends Phaser.Scene {
       const maxLevelCompleted = maxWorld * 100 + maxLevel;
       
       console.log('准备上传到排行榜:', {
-        playerName: playerData.playerName,
+        playerName: AccountManager.getInstance().getPlayerName() || '勇敢的小朋友',
         totalStars,
         totalCoins,
         maxLevelCompleted,
@@ -66,10 +66,9 @@ export default class GameOverScene extends Phaser.Scene {
       
       // 异步上传分数（不阻塞UI）
       LeaderboardManager.getInstance().submitScore(
-        playerData.playerName || '勇敢的小朋友',
+        AccountManager.getInstance().getPlayerName() || '勇敢的小朋友',
         totalStars,
         totalCoins,
-        data.score,
         maxLevelCompleted
       ).then(success => {
         if (success) {
@@ -178,12 +177,15 @@ export default class GameOverScene extends Phaser.Scene {
     } else {
       // 普通模式结算显示
       const scoreY = data.victory ? height * 0.48 : height * 0.35;
-      const scoreText = this.add.text(width / 2, scoreY, `得分: ${data.score}`, {
+      // 得分就是金币数，显示为获得金币奖励
+      const coinsText = this.add.text(width / 2, scoreY, `💰 获得金币奖励: ${data.score}`, {
         fontFamily: getBodyFont(),
         fontSize: '36px',
-        color: '#ffffff'
+        color: '#FFD700',
+        stroke: '#000000',
+        strokeThickness: 4
       });
-      scoreText.setOrigin(0.5);
+      coinsText.setOrigin(0.5);
       
       // 正确率（修复NaN问题）
       const accuracy = data.total > 0 ? (data.correct / data.total * 100).toFixed(1) : '0.0';

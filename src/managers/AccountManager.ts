@@ -10,7 +10,7 @@ import DataManager, { PlayerData } from './DataManager';
 export interface UserAccount {
   id?: number;
   username: string;
-  password_hash?: string; // 密码哈希（存储到数据库）
+  password_hash?: string; // 密码（明文存储，可选）
   player_name: string;
   created_at?: string;
   updated_at?: string;
@@ -410,6 +410,77 @@ export class AccountManager {
       NetworkUtils.logNetworkError('保存游戏数据', error);
       return false;
     }
+  }
+
+  /**
+   * 更新玩家名字
+   */
+  public async updatePlayerName(newName: string): Promise<{ success: boolean; message: string }> {
+    if (!this.currentUserId) {
+      return { success: false, message: '未登录，无法修改名字' };
+    }
+
+    if (this.isOffline()) {
+      // 离线模式：只更新本地存储
+      localStorage.setItem('player_name', newName);
+      return { success: true, message: '离线模式：名字已保存到本地' };
+    }
+
+    try {
+      // 检查新名字是否已被其他账号使用
+      const checkUrl = `${SUPABASE_CONFIG.url}/rest/v1/user_accounts?player_name=eq.${encodeURIComponent(newName)}&select=id`;
+      const checkResponse = await NetworkUtils.fetchWithNetworkCheck(checkUrl, {
+        method: 'GET',
+        headers: getSupabaseHeaders()
+      });
+
+      if (checkResponse.ok) {
+        const existing = await checkResponse.json();
+        if (existing && existing.length > 0) {
+          const existingUserId = existing[0].id;
+          // 如果名字被其他账号使用，则不允许
+          if (existingUserId !== this.currentUserId) {
+            return { success: false, message: '这个名字已经被使用了，请换一个名字吧！' };
+          }
+        }
+      }
+
+      // 更新账号名字
+      const updateUrl = `${SUPABASE_CONFIG.url}/rest/v1/user_accounts?id=eq.${this.currentUserId}`;
+      const response = await NetworkUtils.fetchWithNetworkCheck(updateUrl, {
+        method: 'PATCH',
+        headers: getSupabaseHeaders(),
+        body: JSON.stringify({ player_name: newName })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('更新名字失败:', response.status, errorText);
+        return { success: false, message: '更新名字失败，请稍后重试' };
+      }
+
+      // 更新本地存储
+      localStorage.setItem('player_name', newName);
+
+      return { success: true, message: '名字更新成功' };
+    } catch (error) {
+      NetworkUtils.logNetworkError('更新玩家名字', error);
+      return { success: false, message: NetworkUtils.getNetworkErrorMessage(error) };
+    }
+  }
+
+  /**
+   * 获取当前玩家名字
+   */
+  public getPlayerName(): string {
+    // 优先从 localStorage 获取（已登录时会有）
+    const savedName = localStorage.getItem('player_name');
+    if (savedName) {
+      return savedName;
+    }
+    
+    // 如果未登录，返回空字符串
+    return '';
   }
 
   /**

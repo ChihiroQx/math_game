@@ -99,7 +99,8 @@ export default class DOMUtils {
     input.style.transform = 'translate(-50%, -50%)';
     input.style.width = `${width}px`;
     input.style.height = `${height}px`;
-    input.style.zIndex = '10000';
+    input.style.zIndex = '99999'; // 确保输入框在最上层
+    input.style.pointerEvents = 'auto'; // 确保可以接收鼠标事件
     
     return input;
   }

@@ -11,7 +11,6 @@ export interface LeaderboardEntry {
   player_name: string;
   total_stars: number;
   total_coins: number;
-  highest_score: number;
   max_level_completed?: number;  // 最大通关数（世界×100 + 关卡，如：102 = 世界1第2关）
   max_level_text?: string;       // 最大通关文本（如："世界1-关卡2"）
   created_at?: string;
@@ -31,14 +30,6 @@ export interface InfiniteModeRecord {
   created_at?: string;
 }
 
-/**
- * 玩家名字记录接口
- */
-export interface PlayerNameRecord {
-  id?: number;
-  player_name: string;
-  created_at?: string;
-}
 
 export class LeaderboardManager {
   private static instance: LeaderboardManager;
@@ -64,7 +55,8 @@ export class LeaderboardManager {
    */
   public async getTopPlayers(limit: number = 10): Promise<LeaderboardEntry[]> {
     try {
-      const url = `${SUPABASE_CONFIG.url}/rest/v1/leaderboard?select=*&order=max_level_completed.desc.nullslast,total_stars.desc,total_coins.desc&limit=${limit}`;
+      // 排序规则：1. 关卡进度（降序） 2. 星星数量（降序） 3. 创建时间（升序，先达到的排名更高）
+      const url = `${SUPABASE_CONFIG.url}/rest/v1/leaderboard?select=*&order=max_level_completed.desc.nullslast,total_stars.desc,created_at.asc&limit=${limit}`;
       console.log('📥 请求排行榜数据，URL:', url);
       
       const response = await NetworkUtils.fetchWithNetworkCheck(url, {
@@ -93,7 +85,7 @@ export class LeaderboardManager {
   /**
    * 提交玩家分数
    */
-  public async submitScore(playerName: string, stars: number, coins: number, score: number, maxLevelCompleted: number): Promise<boolean> {
+  public async submitScore(playerName: string, stars: number, coins: number, maxLevelCompleted: number): Promise<boolean> {
     try {
       // 如果已有记录ID，先验证是否真实存在
       if (this.playerRecordId) {
@@ -114,7 +106,14 @@ export class LeaderboardManager {
           
           if (existingData && existingData.length > 0) {
             console.log('✅ 记录存在，执行更新');
-            return await this.updateScore(stars, coins, score, maxLevelCompleted);
+            const existing = existingData[0];
+            // 使用现有记录的值和传入的值，取较大值（确保数据正确）
+            // stars 和 coins 参数已经是累计的总数，所以直接比较取较大值
+            return await this.updateScore(
+              Math.max(existing.total_stars || 0, stars), // 取较大值
+              Math.max(existing.total_coins || 0, coins), // 取较大值
+              Math.max(existing.max_level_completed || 0, maxLevelCompleted) // 最大关卡取较大值
+            );
           } else {
             console.log('⚠️ 记录不存在，清除本地ID并创建新记录');
             this.playerRecordId = null;
@@ -128,7 +127,6 @@ export class LeaderboardManager {
         player_name: playerName,
         total_stars: stars,
         total_coins: coins,
-        highest_score: score,
         max_level_completed: maxLevelCompleted
       };
 
@@ -170,17 +168,23 @@ export class LeaderboardManager {
 
   /**
    * 更新玩家分数
+   * @param totalStars 总星星数（取较大值）
+   * @param totalCoins 总金币数（取较大值）
+   * @param maxLevelCompleted 最大通关数（取较大值）
    */
-  public async updateScore(stars: number, coins: number, score: number, maxLevelCompleted: number): Promise<boolean> {
+  public async updateScore(
+    totalStars: number, 
+    totalCoins: number, 
+    maxLevelCompleted: number
+  ): Promise<boolean> {
     if (!this.playerRecordId) {
       return false;
     }
 
     try {
       const entry = {
-        total_stars: stars,
-        total_coins: coins,
-        highest_score: score,
+        total_stars: totalStars,
+        total_coins: totalCoins,
         max_level_completed: maxLevelCompleted,
         updated_at: new Date().toISOString()
       };
@@ -323,78 +327,7 @@ export class LeaderboardManager {
   }
   
   /**
-   * 检查玩家名字是否已存在
-   */
-  public async checkPlayerNameExists(playerName: string): Promise<boolean> {
-    try {
-      const url = `${SUPABASE_CONFIG.url}/rest/v1/player_names?player_name=eq.${encodeURIComponent(playerName)}&select=id`;
-      console.log('📥 检查名字是否存在，URL:', url);
-      
-      const response = await NetworkUtils.fetchWithNetworkCheck(url, {
-        method: 'GET',
-        headers: getSupabaseHeaders()
-      });
-      
-      if (!response.ok) {
-        console.error('❌ 检查名字失败:', response.status);
-        return false; // 如果查询失败，允许使用（避免网络问题阻止游戏）
-      }
-      
-      const data = await response.json();
-      const exists = data && data.length > 0;
-      console.log(`📥 名字 "${playerName}" ${exists ? '已存在' : '可用'}`);
-      return exists;
-    } catch (error) {
-      NetworkUtils.logNetworkError('检查玩家名字', error);
-      // 网络错误时返回 false，允许使用（避免网络问题阻止游戏）
-      return false;
-    }
-  }
-  
-  /**
-   * 注册玩家名字（如果不存在则创建）
-   */
-  public async registerPlayerName(playerName: string): Promise<boolean> {
-    try {
-      // 先检查是否已存在
-      const exists = await this.checkPlayerNameExists(playerName);
-      if (exists) {
-        console.log('⚠️ 名字已存在，无法注册');
-        return false;
-      }
-      
-      // 创建新记录
-      const record: PlayerNameRecord = {
-        player_name: playerName
-      };
-      
-      console.log('📤 注册玩家名字到 Supabase:', record);
-      
-      const response = await NetworkUtils.fetchWithNetworkCheck(
-        `${SUPABASE_CONFIG.url}/rest/v1/player_names`,
-        {
-          method: 'POST',
-          headers: getSupabaseHeaders(),
-          body: JSON.stringify(record)
-        }
-      );
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ 注册名字失败:', response.status, errorText);
-        return false;
-      }
-      
-      console.log('✅ 玩家名字注册成功');
-      return true;
-    } catch (error) {
-      NetworkUtils.logNetworkError('注册玩家名字', error);
-      return false;
-    }
-  }
-
-  /**
-   * 获取总玩家数量
+   * 获取总玩家数量（使用账号表）
    */
   public async getTotalPlayerCount(): Promise<number> {
     try {
@@ -405,7 +338,7 @@ export class LeaderboardManager {
         'Prefer': 'count=exact'
       };
       
-      const url = `${SUPABASE_CONFIG.url}/rest/v1/player_names?select=id&limit=0`;
+      const url = `${SUPABASE_CONFIG.url}/rest/v1/user_accounts?select=id&limit=0`;
       const response = await NetworkUtils.fetchWithNetworkCheck(url, {
         method: 'HEAD',
         headers: headers
@@ -426,7 +359,7 @@ export class LeaderboardManager {
       // 降级方案：获取所有记录并计算长度（如果响应头不支持）
       console.log('⚠️ 响应头未包含总数，使用降级方案');
       const getResponse = await NetworkUtils.fetchWithNetworkCheck(
-        `${SUPABASE_CONFIG.url}/rest/v1/player_names?select=id`,
+        `${SUPABASE_CONFIG.url}/rest/v1/user_accounts?select=id`,
         {
           method: 'GET',
           headers: getSupabaseHeaders()

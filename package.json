@@ -19,11 +19,9 @@
   "author": "Your Name",
   "license": "MIT",
   "dependencies": {
-    "crypto-js": "^4.2.0",
     "phaser": "^3.70.0"
   },
   "devDependencies": {
-    "@types/crypto-js": "^4.2.2",
     "@types/node": "^20.10.0",
     "copy-webpack-plugin": "^11.0.0",
     "html-webpack-plugin": "^5.5.3",

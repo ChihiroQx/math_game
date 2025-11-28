@@ -5,7 +5,6 @@
 
 import Phaser from 'phaser';
 import { AccountManager } from '../managers/AccountManager';
-import NetworkUtils from '../utils/NetworkUtils';
 import ButtonFactory from '../utils/ButtonFactory';
 import DOMUtils from '../utils/DOMUtils';
 import { getTitleFont, getBodyFont } from '../config/FontConfig';

@@ -345,7 +345,10 @@ export default class LeaderboardScene extends Phaser.Scene {
       }
     }).setOrigin(0.5);
     
-    this.add.text(width * 0.35, playerY, data.playerName, {
+    // 从 AccountManager 获取玩家名字
+    const { AccountManager } = require('../managers/AccountManager');
+    const playerName = AccountManager.getInstance().getPlayerName() || '未设置';
+    this.add.text(width * 0.35, playerY, playerName, {
       fontFamily: getBodyFont(),
       fontSize: '24px',
       color: '#ffffff',
@@ -393,8 +396,9 @@ export default class LeaderboardScene extends Phaser.Scene {
     
     // 添加当前玩家
     const currentData = DataManager.getInstance().playerData;
+    const { AccountManager } = require('../managers/AccountManager');
     leaderboard.push({
-      name: currentData.playerName,
+      name: AccountManager.getInstance().getPlayerName() || '未设置',
       stars: currentData.totalStars,
       coins: currentData.coins
     });

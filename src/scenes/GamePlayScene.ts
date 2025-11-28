@@ -3,6 +3,7 @@ import GameManager from '../managers/GameManager';
 import QuestionManager, { QuestionData } from '../managers/QuestionManager';
 import AudioManager from '../managers/AudioManager';
 import DataManager from '../managers/DataManager';
+import { AccountManager } from '../managers/AccountManager';
 import TimerManager from '../managers/TimerManager';
 import ResourceManager from '../managers/ResourceManager';
 import { Monster } from '../entities/Monster';
@@ -1408,7 +1409,7 @@ export default class GamePlayScene extends Phaser.Scene {
         await leaderboardManager.submitInfiniteModeRecord(
           this.gameManager.currentWorld,
           this.gameManager.currentLevel,
-          dataManager.playerData.playerName || '勇敢的小朋友',
+          AccountManager.getInstance().getPlayerName() || '勇敢的小朋友',
           this.totalMonstersDefeated,
           survivalTime
         );
