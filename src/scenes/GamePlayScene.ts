@@ -61,6 +61,12 @@ export default class GamePlayScene extends Phaser.Scene {
   private pauseOverlay!: Phaser.GameObjects.Graphics;
   private pauseMenu!: Phaser.GameObjects.Container;
   
+  // UI元素引用（用于响应式布局）
+  private uiElements: {
+    background?: Phaser.GameObjects.Graphics;
+    [key: string]: any;
+  } = {};
+  
   constructor() {
     super({ key: 'GamePlayScene' });
   }
@@ -130,6 +136,103 @@ export default class GamePlayScene extends Phaser.Scene {
     
     // 播放背景音乐
     this.audioManager.playMusic('game');
+    
+    // 监听窗口大小变化
+    this.scale.on('resize', this.handleResize, this);
+  }
+  
+  /**
+   * 处理窗口大小变化
+   */
+  handleResize(): void {
+    // 检查场景和摄像头是否已初始化
+    if (!this.scene || !this.cameras || !this.cameras.main) {
+      return;
+    }
+    
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    
+    // 检查宽度和高度是否有效
+    if (!width || !height || width <= 0 || height <= 0) {
+      return;
+    }
+    
+    this.relayoutUI(width, height);
+  }
+  
+  /**
+   * 重新布局UI元素
+   */
+  private relayoutUI(width: number, height: number): void {
+    // 重新创建背景（根据当前世界）
+    if (this.uiElements.background && this.gameManager) {
+      const world = this.gameManager.currentWorld;
+      this.uiElements.background.clear();
+      
+      if (world === 1) {
+        // 世界1：数字森林
+        this.uiElements.background.fillGradientStyle(
+          0x87CEEB, 0x87CEEB, 0xA8D8B8, 0x90C8A0, 1
+        );
+      } else if (world === 2) {
+        // 世界2：魔法山谷
+        this.uiElements.background.fillGradientStyle(
+          0x9370DB, 0x9370DB, 0xBA55D3, 0x8B008B, 1
+        );
+      } else {
+        // 世界3：智慧城堡
+        this.uiElements.background.fillGradientStyle(
+          0xFFD700, 0xFFD700, 0xFF8C00, 0xFF6347, 1
+        );
+      }
+      this.uiElements.background.fillRect(0, 0, width, height);
+    }
+    
+    // 重新布局UI文本（位置基于百分比）
+    if (this.questionText) {
+      this.questionText.setPosition(width / 2, height * 0.15);
+    }
+    if (this.scoreText) {
+      this.scoreText.setPosition(width - 150, 30);
+    }
+    if (this.progressText) {
+      this.progressText.setPosition(width - 150, 70);
+    }
+    if (this.timerText) {
+      this.timerText.setPosition(width - 150, 110);
+    }
+    if (this.waveText) {
+      this.waveText.setPosition(width - 150, 150);
+    }
+    if (this.survivalTimeText) {
+      this.survivalTimeText.setPosition(width - 150, 150);
+    }
+    if (this.pauseButton) {
+      this.pauseButton.setPosition(width - 80, 30);
+    }
+    
+    // 重新布局答案按钮（基于宽度）
+    if (this.answerButtons && this.answerButtons.length > 0) {
+      const buttonY = height * 0.75;
+      const buttonSpacing = Math.min(150, (width - 200) / this.answerButtons.length);
+      const startX = (width - (this.answerButtons.length - 1) * buttonSpacing) / 2;
+      this.answerButtons.forEach((button, index) => {
+        if (button) {
+          button.setPosition(startX + index * buttonSpacing, buttonY);
+        }
+      });
+    }
+  }
+  
+  /**
+   * 场景销毁时清理
+   */
+  shutdown(): void {
+    // 移除 resize 监听器
+    if (this.scale) {
+      this.scale.off('resize', this.handleResize, this);
+    }
   }
   
   update(time: number, delta: number): void {
@@ -193,6 +296,7 @@ export default class GamePlayScene extends Phaser.Scene {
       );
     }
     bg.fillRect(0, 0, width, height);
+    this.uiElements.background = bg;
     
     // 添加云朵装饰（童话风格）
     for (let i = 0; i < 5; i++) {

@@ -9,6 +9,7 @@ import { getTitleFont, getBodyFont, getNumberFont } from '../config/FontConfig';
  */
 export default class LeaderboardScene extends Phaser.Scene {
   private stars: Phaser.GameObjects.Graphics[] = [];
+  private uiElements: { [key: string]: any } = {};
   
   constructor() {
     super({ key: 'LeaderboardScene' });
@@ -32,6 +33,52 @@ export default class LeaderboardScene extends Phaser.Scene {
     
     // 排行榜内容
     await this.createLeaderboard(width, height);
+    
+    // 监听窗口大小变化
+    this.scale.on('resize', this.handleResize, this);
+  }
+  
+  /**
+   * 处理窗口大小变化
+   */
+  handleResize(): void {
+    // 检查场景和摄像头是否已初始化
+    if (!this.scene || !this.cameras || !this.cameras.main) {
+      return;
+    }
+    
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    
+    // 检查宽度和高度是否有效
+    if (!width || !height || width <= 0 || height <= 0) {
+      return;
+    }
+    
+    this.relayoutUI(width, height);
+  }
+  
+  /**
+   * 重新布局UI元素
+   */
+  private relayoutUI(width: number, height: number): void {
+    if (this.uiElements.background) {
+      this.uiElements.background.clear();
+      this.uiElements.background.fillGradientStyle(
+        0x87CEEB, 0x87CEEB, 0xE6B0FF, 0xFFB6E1, 1
+      );
+      this.uiElements.background.fillRect(0, 0, width, height);
+    }
+    // 其他UI元素重新布局逻辑可以在这里添加
+  }
+  
+  /**
+   * 场景销毁时清理
+   */
+  shutdown(): void {
+    if (this.scale) {
+      this.scale.off('resize', this.handleResize, this);
+    }
   }
   
   update(): void {
@@ -60,6 +107,7 @@ export default class LeaderboardScene extends Phaser.Scene {
       1
     );
     graphics.fillRect(0, 0, width, height);
+    this.uiElements.background = graphics;
   }
   
   /**

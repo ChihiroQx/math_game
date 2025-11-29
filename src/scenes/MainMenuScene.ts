@@ -13,14 +13,35 @@ import { getTitleFont, getBodyFont } from '../config/FontConfig';
  */
 export default class MainMenuScene extends Phaser.Scene {
   private stars: Phaser.GameObjects.Graphics[] = [];
+  private uiElements: {
+    background?: Phaser.GameObjects.Graphics;
+    titleBg?: Phaser.GameObjects.Graphics;
+    title?: Phaser.GameObjects.Text;
+    subtitle?: Phaser.GameObjects.Text;
+    nameCardBg?: Phaser.GameObjects.Graphics;
+    nameText?: Phaser.GameObjects.Text;
+    coinCardBg?: Phaser.GameObjects.Graphics;
+    coinText?: Phaser.GameObjects.Text;
+    starCardBg?: Phaser.GameObjects.Graphics;
+    starText?: Phaser.GameObjects.Text;
+    playerCountCardBg?: Phaser.GameObjects.Graphics;
+    playerCountText?: Phaser.GameObjects.Text;
+    switchAccountBtn?: Phaser.GameObjects.Container;
+    menuButtons?: Phaser.GameObjects.Container[];
+    footerBg?: Phaser.GameObjects.Graphics;
+    versionText?: Phaser.GameObjects.Text;
+    footerIcons?: Phaser.GameObjects.Text[];
+    offlineHint?: Phaser.GameObjects.Text;
+  } = {};
   
   constructor() {
     super({ key: 'MainMenuScene' });
   }
   
   create(): void {
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
+    // 使用游戏世界尺寸（在FIT模式下始终是1280x720）
+    const width = this.scale.gameSize.width || this.cameras.main.width || 1280;
+    const height = this.scale.gameSize.height || this.cameras.main.height || 720;
     
     // 检查登录状态
     const accountManager = AccountManager.getInstance();
@@ -56,6 +77,176 @@ export default class MainMenuScene extends Phaser.Scene {
     
     // 播放背景音乐（如果有）
     // AudioManager.getInstance().playMusic('mainMenu');
+    
+    // 监听窗口大小变化
+    this.setupResizeListener();
+  }
+  
+  /**
+   * 设置窗口大小变化监听
+   */
+  private setupResizeListener(): void {
+    // 监听 Phaser scale 的 resize 事件
+    this.scale.on('resize', () => {
+      this.handleResize();
+    }, this);
+  }
+  
+  /**
+   * 处理窗口大小变化
+   */
+  handleResize(): void {
+    // 延迟执行，确保scale完全刷新
+    setTimeout(() => {
+      // 检查场景是否活跃和摄像头是否已初始化
+      if (!this.scene.isActive() || !this.cameras || !this.cameras.main) {
+        return;
+      }
+      
+      // 使用游戏世界尺寸（在FIT模式下始终是1280x720）
+      const width = this.scale.gameSize?.width || this.cameras.main.width || 1280;
+      const height = this.scale.gameSize?.height || this.cameras.main.height || 720;
+      
+      // 检查宽度和高度是否有效
+      if (!width || !height || width <= 0 || height <= 0) {
+        return;
+      }
+      
+      // 重新布局所有UI元素
+      this.relayoutUI(width, height);
+    }, 100);
+  }
+  
+  /**
+   * 重新布局UI元素
+   */
+  private relayoutUI(width: number, height: number): void {
+    // 在FIT模式下，游戏世界尺寸始终是1280x720
+    // 在RESIZE模式下，游戏世界尺寸会动态变化
+    // Phaser会自动缩放画布以适应容器，我们只需要按当前游戏世界尺寸重新布局元素
+    
+    // 确保尺寸有效
+    if (!width || !height || width <= 0 || height <= 0) {
+      return;
+    }
+    
+    // 重新创建背景
+    if (this.uiElements.background) {
+      this.uiElements.background.clear();
+      this.uiElements.background.fillGradientStyle(
+        0x87CEEB, 0x87CEEB, 0xE6B0FF, 0xFFB6E1, 1
+      );
+      this.uiElements.background.fillRect(0, 0, width, height);
+      // 确保背景可见
+      this.uiElements.background.setVisible(true);
+    }
+    
+    // 重新布局标题（使用原始尺寸）
+    if (this.uiElements.titleBg) {
+      this.uiElements.titleBg.clear();
+      this.uiElements.titleBg.fillStyle(0xFFFFFF, 0.2);
+      this.uiElements.titleBg.fillRoundedRect(width / 2 - 350, height * 0.12, 700, 140, 20);
+    }
+    if (this.uiElements.title) {
+      this.uiElements.title.setPosition(width / 2, height * 0.15);
+      this.uiElements.title.setVisible(true);
+    }
+    if (this.uiElements.subtitle) {
+      this.uiElements.subtitle.setPosition(width / 2, height * 0.23);
+      this.uiElements.subtitle.setVisible(true);
+    }
+    
+    // 重新布局玩家信息（左侧，使用原始尺寸）
+    if (this.uiElements.nameCardBg) {
+      this.uiElements.nameCardBg.clear();
+      this.uiElements.nameCardBg.fillStyle(0xFFFFFF, 0.3);
+      this.uiElements.nameCardBg.fillRoundedRect(20, 20, 200, 50, 25);
+    }
+    if (this.uiElements.nameText) {
+      this.uiElements.nameText.setPosition(30, 45);
+      this.uiElements.nameText.setVisible(true);
+    }
+    
+    // 重新布局右侧卡片（使用原始尺寸）
+    const rightCardX = width - 180;
+    
+    if (this.uiElements.coinCardBg) {
+      this.uiElements.coinCardBg.clear();
+      this.uiElements.coinCardBg.fillStyle(0xFFD700, 0.3);
+      this.uiElements.coinCardBg.fillRoundedRect(rightCardX, 20, 160, 50, 25);
+    }
+    if (this.uiElements.coinText) {
+      this.uiElements.coinText.setPosition(width - 90, 45);
+      this.uiElements.coinText.setVisible(true);
+      // 更新金币数量
+      const data = DataManager.getInstance().playerData;
+      this.uiElements.coinText.setText(`💰 ${data.coins}`);
+    }
+    
+    if (this.uiElements.starCardBg) {
+      this.uiElements.starCardBg.clear();
+      this.uiElements.starCardBg.fillStyle(0xFFA500, 0.3);
+      this.uiElements.starCardBg.fillRoundedRect(rightCardX, 85, 160, 50, 25);
+      this.uiElements.starCardBg.setVisible(true);
+    }
+    if (this.uiElements.starText) {
+      this.uiElements.starText.setPosition(width - 90, 110);
+      this.uiElements.starText.setVisible(true);
+      // 更新星星数量
+      const data = DataManager.getInstance().playerData;
+      this.uiElements.starText.setText(`⭐ ${data.totalStars}`);
+    }
+    
+    // 重新布局总玩家数量（使用原始尺寸）
+    if (this.uiElements.playerCountCardBg) {
+      this.uiElements.playerCountCardBg.clear();
+      this.uiElements.playerCountCardBg.fillStyle(0x9B59B6, 0.3);
+      this.uiElements.playerCountCardBg.fillRoundedRect(rightCardX, 150, 160, 50, 25);
+    }
+    if (this.uiElements.playerCountText) {
+      this.uiElements.playerCountText.setPosition(width - 90, 175);
+      this.uiElements.playerCountText.setVisible(true);
+    }
+    
+    // 重新布局切换账号按钮（使用原始尺寸）
+    if (this.uiElements.switchAccountBtn) {
+      this.uiElements.switchAccountBtn.setPosition(20 + 100, 20 + 50 + 10 + 22.5);
+      this.uiElements.switchAccountBtn.setScale(1);
+      this.uiElements.switchAccountBtn.setVisible(true);
+    }
+    
+    // 重新布局菜单按钮（使用原始尺寸）
+    if (this.uiElements.menuButtons && this.uiElements.menuButtons.length > 0) {
+      const startY = height * 0.42;
+      const buttonSpacing = 90;
+      this.uiElements.menuButtons.forEach((button, index) => {
+        const y = startY + index * buttonSpacing;
+        button.setPosition(width / 2, y);
+        button.setScale(1);
+        button.setVisible(true);
+      });
+    }
+    
+    // 重新布局底部（使用原始尺寸）
+    if (this.uiElements.footerBg) {
+      this.uiElements.footerBg.clear();
+      this.uiElements.footerBg.fillStyle(0xFFFFFF, 0.2);
+      this.uiElements.footerBg.fillRect(0, height - 50, width, 50);
+    }
+    if (this.uiElements.versionText) {
+      this.uiElements.versionText.setPosition(width / 2, height - 25);
+    }
+    if (this.uiElements.footerIcons && this.uiElements.footerIcons.length > 0) {
+      const decorIcons = ['🌟', '🎈', '🦄', '🌈', '🎨', '🎪'];
+      this.uiElements.footerIcons.forEach((icon, index) => {
+        const x = (width / (decorIcons.length + 1)) * (index + 1);
+        const iconY = height - 75;
+        icon.setPosition(x, iconY);
+      });
+    }
+    if (this.uiElements.offlineHint) {
+      this.uiElements.offlineHint.setPosition(width / 2, height - 100);
+    }
   }
   
   update(): void {
@@ -71,8 +262,9 @@ export default class MainMenuScene extends Phaser.Scene {
    * 创建背景（更漂亮的渐变）
    */
   private createBackground(): void {
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
+    // 使用游戏世界尺寸（在FIT模式下始终是1280x720）
+    const width = this.scale.gameSize.width || this.cameras.main.width || 1280;
+    const height = this.scale.gameSize.height || this.cameras.main.height || 720;
     
     const graphics = this.add.graphics();
     // 从天空蓝到粉紫色的柔和渐变
@@ -84,14 +276,16 @@ export default class MainMenuScene extends Phaser.Scene {
       1
     );
     graphics.fillRect(0, 0, width, height);
+    this.uiElements.background = graphics;
   }
   
   /**
    * 创建星星装饰
    */
   private createStars(): void {
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
+    // 使用游戏世界尺寸（在FIT模式下始终是1280x720）
+    const width = this.scale.gameSize.width || this.cameras.main.width || 1280;
+    const height = this.scale.gameSize.height || this.cameras.main.height || 720;
     
     // 随机生成30颗星星
     for (let i = 0; i < 30; i++) {
@@ -125,6 +319,7 @@ export default class MainMenuScene extends Phaser.Scene {
     const titleBg = this.add.graphics();
     titleBg.fillStyle(0xFFFFFF, 0.2);
     titleBg.fillRoundedRect(width / 2 - 350, height * 0.12, 700, 140, 20);
+    this.uiElements.titleBg = titleBg;
     
     // 主标题
     const title = this.add.text(width / 2, height * 0.15, '数学童话冒险', {
@@ -143,6 +338,7 @@ export default class MainMenuScene extends Phaser.Scene {
     });
     title.setOrigin(0.5);
     title.setAlpha(0);
+    this.uiElements.title = title;
     
     // 入场动画
     this.tweens.add({
@@ -181,6 +377,7 @@ export default class MainMenuScene extends Phaser.Scene {
     subtitle.setOrigin(0.5);
     subtitle.setAlpha(0);
     subtitle.setPadding(4, 4, 4, 4);
+    this.uiElements.subtitle = subtitle;
     
     // 延迟入场
     this.tweens.add({
@@ -203,6 +400,7 @@ export default class MainMenuScene extends Phaser.Scene {
     const nameCardBg = this.add.graphics();
     nameCardBg.fillStyle(0xFFFFFF, 0.3);
     nameCardBg.fillRoundedRect(20, 20, 200, 50, 25);
+    this.uiElements.nameCardBg = nameCardBg;
     
     const accountManager = AccountManager.getInstance();
     const displayName = accountManager.getPlayerName() || '未设置';
@@ -221,11 +419,13 @@ export default class MainMenuScene extends Phaser.Scene {
       }
     });
     nameText.setOrigin(0, 0.5);
+    this.uiElements.nameText = nameText;
     
     // 右侧金币卡片
     const coinCardBg = this.add.graphics();
     coinCardBg.fillStyle(0xFFD700, 0.3);
     coinCardBg.fillRoundedRect(width - 180, 20, 160, 50, 25);
+    this.uiElements.coinCardBg = coinCardBg;
     
     const coinText = this.add.text(width - 90, 45, `💰 ${data.coins}`, {
       fontFamily: getTitleFont(),
@@ -243,11 +443,13 @@ export default class MainMenuScene extends Phaser.Scene {
     });
     coinText.setOrigin(0.5);
     coinText.setPadding(4, 4, 4, 4);
+    this.uiElements.coinText = coinText;
     
     // 右侧星星卡片
     const starCardBg = this.add.graphics();
     starCardBg.fillStyle(0xFFA500, 0.3);
     starCardBg.fillRoundedRect(width - 180, 85, 160, 50, 25);
+    this.uiElements.starCardBg = starCardBg;
     
     const starText = this.add.text(width - 90, 110, `⭐ ${data.totalStars}`, {
       fontFamily: getTitleFont(),
@@ -264,6 +466,7 @@ export default class MainMenuScene extends Phaser.Scene {
       }
     });
     starText.setOrigin(0.5);
+    this.uiElements.starText = starText;
   }
   
   /**
@@ -279,10 +482,12 @@ export default class MainMenuScene extends Phaser.Scene {
     const playerCountCardBg = this.add.graphics();
     playerCountCardBg.fillStyle(0x9B59B6, 0.3); // 紫色背景
     playerCountCardBg.fillRoundedRect(width - 180, 150, 160, 50, 25);
+    this.uiElements.playerCountCardBg = playerCountCardBg;
     
     // 先显示加载中
+    // 使用系统字体作为回退，避免字体未加载完成时的错误
     const playerCountText = this.add.text(width - 90, 175, `👥 加载中...`, {
-      fontFamily: getBodyFont(),
+      fontFamily: 'Arial, "Microsoft YaHei", sans-serif', // 使用系统字体作为回退
       fontSize: '22px',
       color: '#FFFFFF',
       stroke: '#000000',
@@ -296,11 +501,23 @@ export default class MainMenuScene extends Phaser.Scene {
       }
     });
     playerCountText.setOrigin(0.5);
+    this.uiElements.playerCountText = playerCountText;
+    
+    // 安全的文本更新函数
+    const safeSetText = (text: string) => {
+      try {
+        if (playerCountText && playerCountText.active) {
+          playerCountText.setText(text);
+        }
+      } catch (error) {
+        // 更新文本时出错，忽略
+      }
+    };
     
     // 异步获取总玩家数量
     try {
       if (!NetworkUtils.isOnline()) {
-        playerCountText.setText(`👥 离线`);
+        safeSetText(`👥 离线`);
         return;
       }
       
@@ -309,14 +526,14 @@ export default class MainMenuScene extends Phaser.Scene {
       
       // 更新显示
       if (totalCount > 0) {
-        playerCountText.setText(`👥 ${totalCount} 玩家`);
-        console.log(`✅ 总玩家数量: ${totalCount}`);
+        safeSetText(`👥 ${totalCount} 玩家`);
+        // 总玩家数量已更新
       } else {
-        playerCountText.setText(`👥 --`);
+        safeSetText(`👥 --`);
       }
     } catch (error) {
       NetworkUtils.logNetworkError('获取总玩家数量', error);
-      playerCountText.setText(`👥 --`);
+      safeSetText(`👥 --`);
     }
   }
   
@@ -355,6 +572,7 @@ export default class MainMenuScene extends Phaser.Scene {
         }
       }
     });
+    this.uiElements.switchAccountBtn = switchAccountBtn;
     
     // 添加悬停效果
     switchAccountBtn.on('pointerover', () => {
@@ -383,6 +601,9 @@ export default class MainMenuScene extends Phaser.Scene {
       { text: '设置', icon: '⚙️', color: 0xFFA0C8, delay: 300, disabled: false }
     ];
     
+    if (!this.uiElements.menuButtons) {
+      this.uiElements.menuButtons = [];
+    }
     buttons.forEach((config, index) => {
       const y = startY + index * buttonSpacing;
       const callback = index === 0 ? () => this.scene.start('WorldMapScene') :
@@ -417,6 +638,10 @@ export default class MainMenuScene extends Phaser.Scene {
       if (config.disabled) {
         button.setAlpha(0.5);
       }
+      
+      if (this.uiElements.menuButtons) {
+        this.uiElements.menuButtons.push(button);
+      }
     });
     
     // 如果离线模式，显示提示
@@ -429,6 +654,7 @@ export default class MainMenuScene extends Phaser.Scene {
         strokeThickness: 4
       });
       offlineHint.setOrigin(0.5);
+      this.uiElements.offlineHint = offlineHint;
     }
   }
   
@@ -440,6 +666,7 @@ export default class MainMenuScene extends Phaser.Scene {
     const footerBg = this.add.graphics();
     footerBg.fillStyle(0xFFFFFF, 0.2);
     footerBg.fillRect(0, height - 50, width, 50);
+    this.uiElements.footerBg = footerBg;
     
     // 版本信息
     const versionText = this.add.text(width / 2, height - 25, '专为小朋友设计的数学学习游戏 ❤️', {
@@ -451,9 +678,13 @@ export default class MainMenuScene extends Phaser.Scene {
     });
     versionText.setOrigin(0.5);
     versionText.setPadding(4, 4, 4, 4);
+    this.uiElements.versionText = versionText;
     
     // 添加可爱的小图标装饰（调整位置，避免被裁切）
     const decorIcons = ['🌟', '🎈', '🦄', '🌈', '🎨', '🎪'];
+    if (!this.uiElements.footerIcons) {
+      this.uiElements.footerIcons = [];
+    }
     decorIcons.forEach((icon, index) => {
       const x = (width / (decorIcons.length + 1)) * (index + 1);
       const iconY = height - 75; // 调整位置，确保完整显示
@@ -462,6 +693,9 @@ export default class MainMenuScene extends Phaser.Scene {
       });
       iconText.setOrigin(0.5);
       iconText.setPadding(10, 10, 10, 10); // 增加padding防止emoji裁切
+      if (this.uiElements.footerIcons) {
+        this.uiElements.footerIcons.push(iconText);
+      }
       
       // 浮动动画（减小浮动范围，避免裁切）
       this.tweens.add({
@@ -494,6 +728,16 @@ export default class MainMenuScene extends Phaser.Scene {
    */
   private showSettings(): void {
     this.scene.start('SettingsScene');
+  }
+  
+  /**
+   * 场景销毁时清理
+   */
+  shutdown(): void {
+    // 移除 resize 监听器
+    if (this.scale) {
+      this.scale.off('resize', this.handleResize, this);
+    }
   }
   
 }

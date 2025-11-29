@@ -21,6 +21,13 @@ export default class LoginScene extends Phaser.Scene {
   private gameWidth: number = 1280;
   private gameHeight: number = 720;
   private resizeHandler?: () => void;
+  private uiElements: {
+    background?: Phaser.GameObjects.Graphics;
+    title?: Phaser.GameObjects.Text;
+    offlineText?: Phaser.GameObjects.Text;
+    offlineHint?: Phaser.GameObjects.Text;
+    continueBtn?: Phaser.GameObjects.Container;
+  } = {};
 
   constructor() {
     super({ key: 'LoginScene' });
@@ -56,9 +63,78 @@ export default class LoginScene extends Phaser.Scene {
 
     // 添加窗口大小变化监听
     this.setupResizeListener();
+    
+    // 监听 Phaser scale 的 resize 事件
+    this.scale.on('resize', this.handleResize, this);
 
     // 尝试自动登录
     this.attemptAutoLogin();
+  }
+  
+  /**
+   * 处理窗口大小变化
+   */
+  handleResize(): void {
+    // 检查场景是否活跃和摄像头是否已初始化
+    if (!this.scene.isActive() || !this.cameras || !this.cameras.main) {
+      return;
+    }
+    
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    
+    // 检查宽度和高度是否有效
+    if (!width || !height || width <= 0 || height <= 0) {
+      console.warn('无效的尺寸，跳过resize处理', { width, height });
+      return;
+    }
+    
+    this.gameWidth = width;
+    this.gameHeight = height;
+    
+    // 重新布局UI元素
+    this.relayoutUI(width, height);
+    
+    // 更新输入框位置
+    this.updateInputPositions();
+  }
+  
+  /**
+   * 重新布局UI元素
+   */
+  private relayoutUI(width: number, height: number): void {
+    // 重新创建背景
+    if (this.uiElements.background) {
+      this.uiElements.background.clear();
+      this.uiElements.background.fillGradientStyle(
+        0x87CEEB, 0x87CEEB, 0xE6B0FF, 0xFFB6E1, 1
+      );
+      this.uiElements.background.fillRect(0, 0, width, height);
+    }
+    
+    // 重新布局标题
+    if (this.uiElements.title) {
+      this.uiElements.title.setPosition(width / 2, 100);
+    }
+    
+    // 重新布局离线模式提示
+    if (this.uiElements.offlineText) {
+      this.uiElements.offlineText.setPosition(width / 2, height / 2 - 100);
+    }
+    if (this.uiElements.offlineHint) {
+      this.uiElements.offlineHint.setPosition(width / 2, height / 2);
+    }
+    if (this.uiElements.continueBtn) {
+      this.uiElements.continueBtn.setPosition(width / 2, height / 2 + 150);
+    }
+    
+    // 重新布局容器
+    if (this.loginContainer) {
+      this.loginContainer.setPosition(width / 2, height / 2);
+    }
+    if (this.registerContainer) {
+      this.registerContainer.setPosition(width / 2, height / 2);
+    }
   }
 
   /**
@@ -143,6 +219,7 @@ export default class LoginScene extends Phaser.Scene {
       1
     );
     graphics.fillRect(0, 0, width, height);
+    this.uiElements.background = graphics;
   }
 
   /**
@@ -164,6 +241,7 @@ export default class LoginScene extends Phaser.Scene {
       }
     });
     title.setOrigin(0.5);
+    this.uiElements.title = title;
   }
 
   /**
@@ -181,6 +259,7 @@ export default class LoginScene extends Phaser.Scene {
       strokeThickness: 6
     });
     offlineText.setOrigin(0.5);
+    this.uiElements.offlineText = offlineText;
 
     const hintText = this.add.text(width / 2, height / 2, '网络不可用，将使用本地数据\n部分功能可能无法使用', {
       fontFamily: getBodyFont(),
@@ -191,6 +270,7 @@ export default class LoginScene extends Phaser.Scene {
       align: 'center'
     });
     hintText.setOrigin(0.5);
+    this.uiElements.offlineHint = hintText;
 
       // 继续按钮
       const continueBtn = ButtonFactory.createButton(this, {
@@ -204,6 +284,7 @@ export default class LoginScene extends Phaser.Scene {
           this.scene.start('PreloadScene');
         }
       });
+      this.uiElements.continueBtn = continueBtn;
   }
 
   /**
@@ -613,6 +694,10 @@ export default class LoginScene extends Phaser.Scene {
    */
   shutdown(): void {
     this.cleanupInputs();
+    // 移除 Phaser scale 的 resize 监听
+    if (this.scale) {
+      this.scale.off('resize', this.handleResize, this);
+    }
   }
 }
 

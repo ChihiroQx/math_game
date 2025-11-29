@@ -10,6 +10,13 @@ import { getTitleFont, getBodyFont } from '../config/FontConfig';
  */
 export default class GameOverScene extends Phaser.Scene {
   private stars: Phaser.GameObjects.Graphics[] = [];
+  private uiElements: {
+    background?: Phaser.GameObjects.Graphics;
+    titleBg?: Phaser.GameObjects.Graphics;
+    title?: Phaser.GameObjects.Text;
+    buttons?: Phaser.GameObjects.Container[];
+    [key: string]: any;
+  } = {};
   
   constructor() {
     super({ key: 'GameOverScene' });
@@ -106,6 +113,7 @@ export default class GameOverScene extends Phaser.Scene {
     const titleBg = this.add.graphics();
     titleBg.fillStyle(0xFFFFFF, 0.2);
     titleBg.fillRoundedRect(width / 2 - 250, height * 0.12, 500, 100, 20);
+    this.uiElements.titleBg = titleBg;
     
     const title = this.add.text(width / 2, height * 0.15, titleText, {
       fontFamily: getTitleFont(),
@@ -132,6 +140,7 @@ export default class GameOverScene extends Phaser.Scene {
       duration: 600,
       ease: 'Back.easeOut'
     });
+    this.uiElements.title = title;
     
     // 星星显示（只在胜利时显示）
     if (data.victory) {
@@ -208,6 +217,65 @@ export default class GameOverScene extends Phaser.Scene {
     
     // 按钮
     this.createButtons(width, height, data.victory);
+    
+    // 监听窗口大小变化
+    this.scale.on('resize', this.handleResize, this);
+  }
+  
+  /**
+   * 处理窗口大小变化
+   */
+  handleResize(): void {
+    // 检查场景和摄像头是否已初始化
+    if (!this.scene || !this.cameras || !this.cameras.main) {
+      return;
+    }
+    
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    
+    // 检查宽度和高度是否有效
+    if (!width || !height || width <= 0 || height <= 0) {
+      return;
+    }
+    
+    this.relayoutUI(width, height);
+  }
+  
+  /**
+   * 重新布局UI元素
+   */
+  private relayoutUI(width: number, height: number): void {
+    // 重新创建背景
+    if (this.uiElements.background) {
+      this.uiElements.background.clear();
+      this.uiElements.background.fillGradientStyle(
+        0x87CEEB, 0x87CEEB, 0xE6B0FF, 0xFFB6E1, 1
+      );
+      this.uiElements.background.fillRect(0, 0, width, height);
+    }
+    
+    // 重新布局标题
+    if (this.uiElements.titleBg) {
+      this.uiElements.titleBg.clear();
+      this.uiElements.titleBg.fillStyle(0xFFFFFF, 0.2);
+      this.uiElements.titleBg.fillRoundedRect(width / 2 - 250, height * 0.12, 500, 100, 20);
+    }
+    if (this.uiElements.title) {
+      this.uiElements.title.setPosition(width / 2, height * 0.15);
+    }
+    
+    // 重新布局按钮
+    if (this.uiElements.buttons && this.uiElements.buttons.length > 0) {
+      const buttonY = height * 0.75;
+      const buttonSpacing = 120;
+      const startX = width / 2 - (this.uiElements.buttons.length - 1) * buttonSpacing / 2;
+      this.uiElements.buttons.forEach((button, index) => {
+        if (button) {
+          button.setPosition(startX + index * buttonSpacing, buttonY);
+        }
+      });
+    }
   }
   
   update(): void {
@@ -236,6 +304,7 @@ export default class GameOverScene extends Phaser.Scene {
       1
     );
     graphics.fillRect(0, 0, width, height);
+    this.uiElements.background = graphics;
   }
   
   /**
@@ -315,13 +384,14 @@ export default class GameOverScene extends Phaser.Scene {
    * 创建按钮（使用统一的ButtonFactory）
    */
   private createButtons(width: number, height: number, victory: boolean): void {
-    const buttonY = height * 0.8;
+    const buttonY = height * 0.75;
+    this.uiElements.buttons = [];
     
     if (victory) {
       // 胜利时显示：下一关 + 重新挑战
       // 下一关按钮
-      ButtonFactory.createButton(this, {
-        x: width / 2 - 150,
+      const nextBtn = ButtonFactory.createButton(this, {
+        x: width / 2 - 60,
         y: buttonY,
         width: 220,
         height: 54,
@@ -335,10 +405,11 @@ export default class GameOverScene extends Phaser.Scene {
           this.scene.start('WorldMapScene');
         }
       });
+      this.uiElements.buttons.push(nextBtn);
       
       // 重新挑战按钮
-      ButtonFactory.createButton(this, {
-        x: width / 2 + 150,
+      const retryBtn = ButtonFactory.createButton(this, {
+        x: width / 2 + 60,
         y: buttonY,
         width: 220,
         height: 54,
@@ -352,11 +423,12 @@ export default class GameOverScene extends Phaser.Scene {
           this.scene.start('GamePlayScene');
         }
       });
+      this.uiElements.buttons.push(retryBtn);
     } else {
       // 失败时显示：重新挑战 + 返回主菜单
       // 重新挑战按钮
-      ButtonFactory.createButton(this, {
-        x: width / 2 - 150,
+      const retryBtn = ButtonFactory.createButton(this, {
+        x: width / 2 - 60,
         y: buttonY,
         width: 220,
         height: 54,
@@ -370,10 +442,11 @@ export default class GameOverScene extends Phaser.Scene {
           this.scene.start('GamePlayScene');
         }
       });
+      this.uiElements.buttons.push(retryBtn);
       
       // 返回主菜单按钮
-      ButtonFactory.createButton(this, {
-        x: width / 2 + 150,
+      const menuBtn = ButtonFactory.createButton(this, {
+        x: width / 2 + 60,
         y: buttonY,
         width: 220,
         height: 54,
@@ -387,6 +460,17 @@ export default class GameOverScene extends Phaser.Scene {
           this.scene.start('MainMenuScene');
         }
       });
+      this.uiElements.buttons.push(menuBtn);
+    }
+  }
+  
+  /**
+   * 场景销毁时清理
+   */
+  shutdown(): void {
+    // 移除 resize 监听器
+    if (this.scale) {
+      this.scale.off('resize', this.handleResize, this);
     }
   }
 }

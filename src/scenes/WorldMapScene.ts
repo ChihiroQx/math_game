@@ -11,6 +11,17 @@ import { getTitleFont } from '../config/FontConfig';
 export default class WorldMapScene extends Phaser.Scene {
   private readonly levelsPerWorld = [5, 4, 3]; // 每个世界的关卡数
   private stars: Phaser.GameObjects.Graphics[] = [];
+  private uiElements: {
+    background?: Phaser.GameObjects.Graphics;
+    titleBg?: Phaser.GameObjects.Graphics;
+    title?: Phaser.GameObjects.Text;
+    backButton?: Phaser.GameObjects.Container;
+    levelContainers?: Phaser.GameObjects.Container[];
+    worldTitles?: Array<{
+      bg?: Phaser.GameObjects.Graphics;
+      text?: Phaser.GameObjects.Text;
+    }>;
+  } = {};
   
   constructor() {
     super({ key: 'WorldMapScene' });
@@ -34,6 +45,100 @@ export default class WorldMapScene extends Phaser.Scene {
     
     // 创建关卡地图
     this.createLevelMap(width, height);
+    
+    // 监听窗口大小变化
+    this.scale.on('resize', this.handleResize, this);
+  }
+  
+  /**
+   * 处理窗口大小变化
+   */
+  handleResize(): void {
+    // 检查场景和摄像头是否已初始化
+    if (!this.scene || !this.cameras || !this.cameras.main) {
+      return;
+    }
+    
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    
+    // 检查宽度和高度是否有效
+    if (!width || !height || width <= 0 || height <= 0) {
+      return;
+    }
+    
+    this.relayoutUI(width, height);
+  }
+  
+  /**
+   * 重新布局UI元素
+   */
+  private relayoutUI(width: number, height: number): void {
+    // 重新创建背景
+    if (this.uiElements.background) {
+      this.uiElements.background.clear();
+      this.uiElements.background.fillGradientStyle(
+        0x87CEEB, 0x87CEEB, 0x98E6B0, 0x90EE90, 1
+      );
+      this.uiElements.background.fillRect(0, 0, width, height);
+    }
+    
+    // 重新布局标题
+    if (this.uiElements.titleBg) {
+      this.uiElements.titleBg.clear();
+      this.uiElements.titleBg.fillStyle(0xFFFFFF, 0.2);
+      this.uiElements.titleBg.fillRoundedRect(width / 2 - 200, 25, 400, 70, 15);
+    }
+    if (this.uiElements.title) {
+      this.uiElements.title.setPosition(width / 2, 60);
+    }
+    
+    // 重新布局返回按钮
+    if (this.uiElements.backButton) {
+      this.uiElements.backButton.setPosition(100, 60);
+    }
+    
+    // 重新布局世界标题和关卡按钮
+    let yOffset = 150;
+    const worldSpacing = 200;
+    
+    if (this.uiElements.worldTitles) {
+      for (let world = 1; world <= 3; world++) {
+        const worldTitle = this.uiElements.worldTitles[world - 1];
+        if (worldTitle) {
+          if (worldTitle.bg) {
+            worldTitle.bg.clear();
+            worldTitle.bg.fillStyle(0xFFFFFF, 0.3);
+            worldTitle.bg.fillRoundedRect(width / 2 - 180, yOffset - 25, 360, 50, 25);
+          }
+          if (worldTitle.text) {
+            worldTitle.text.setPosition(width / 2, yOffset);
+          }
+        }
+        
+        // 重新布局该世界的关卡按钮
+        const levelCount = this.levelsPerWorld[world - 1];
+        const levelSpacing = Math.min(150, (width - 200) / levelCount);
+        const startX = (width - (levelCount - 1) * levelSpacing) / 2;
+        
+        if (this.uiElements.levelContainers) {
+          const worldStartIndex = (world - 1) * 5; // 假设每个世界最多5个关卡
+          for (let level = 1; level <= levelCount; level++) {
+            const containerIndex = worldStartIndex + level - 1;
+            if (containerIndex < this.uiElements.levelContainers.length) {
+              const container = this.uiElements.levelContainers[containerIndex];
+              if (container) {
+                const x = startX + (level - 1) * levelSpacing;
+                const y = yOffset + 90;
+                container.setPosition(x, y);
+              }
+            }
+          }
+        }
+        
+        yOffset += worldSpacing;
+      }
+    }
   }
   
   update(): void {
@@ -62,6 +167,7 @@ export default class WorldMapScene extends Phaser.Scene {
       1
     );
     graphics.fillRect(0, 0, width, height);
+    this.uiElements.background = graphics;
   }
   
   /**
@@ -103,6 +209,7 @@ export default class WorldMapScene extends Phaser.Scene {
     const titleBg = this.add.graphics();
     titleBg.fillStyle(0xFFFFFF, 0.2);
     titleBg.fillRoundedRect(width / 2 - 200, 25, 400, 70, 15);
+    this.uiElements.titleBg = titleBg;
     
     // 标题
     const title = this.add.text(width / 2, 60, '选择关卡', {
@@ -130,13 +237,14 @@ export default class WorldMapScene extends Phaser.Scene {
       duration: 600,
       ease: 'Back.easeOut'
     });
+    this.uiElements.title = title;
   }
   
   /**
    * 创建返回按钮（使用统一的ButtonFactory）
    */
   private createBackButton(): void {
-    ButtonFactory.createButton(this, {
+    const backButton = ButtonFactory.createButton(this, {
       x: 100,
       y: 60,
       width: 130,
@@ -149,6 +257,7 @@ export default class WorldMapScene extends Phaser.Scene {
         this.scene.start('MainMenuScene');
       }
     });
+    this.uiElements.backButton = backButton;
   }
   
   /**
@@ -159,6 +268,13 @@ export default class WorldMapScene extends Phaser.Scene {
     
     let yOffset = 150;
     const worldSpacing = 200; // 从180增加到200，给更多空间
+    
+    if (!this.uiElements.worldTitles) {
+      this.uiElements.worldTitles = [];
+    }
+    if (!this.uiElements.levelContainers) {
+      this.uiElements.levelContainers = [];
+    }
     
     // 遍历3个世界
     for (let world = 1; world <= 3; world++) {
@@ -197,6 +313,12 @@ export default class WorldMapScene extends Phaser.Scene {
         ease: 'Power2'
       });
       
+      // 保存世界标题引用
+      this.uiElements.worldTitles[world - 1] = {
+        bg: titleBg,
+        text: worldText
+      };
+      
       // 关卡按钮（调整位置，避免遮挡标题）
       const levelCount = this.levelsPerWorld[world - 1];
       const levelSpacing = Math.min(150, (width - 200) / levelCount);
@@ -206,7 +328,10 @@ export default class WorldMapScene extends Phaser.Scene {
         const x = startX + (level - 1) * levelSpacing;
         const y = yOffset + 90; // 从60改为90，增加30px间距
         
-        this.createLevelButton(x, y, world, level, dataManager);
+        const container = this.createLevelButton(x, y, world, level, dataManager);
+        if (container) {
+          this.uiElements.levelContainers.push(container);
+        }
       }
       
       yOffset += worldSpacing;
@@ -257,7 +382,7 @@ export default class WorldMapScene extends Phaser.Scene {
     world: number,
     level: number,
     dataManager: DataManager
-  ): void {
+  ): Phaser.GameObjects.Container {
     const isUnlocked = dataManager.isLevelUnlocked(world, level);
     const stars = dataManager.getLevelStars(world, level);
     
@@ -440,6 +565,18 @@ export default class WorldMapScene extends Phaser.Scene {
       lockText.setPosition(20, -20);
       lockText.setPadding(4, 4, 4, 4); // 添加内边距防止裁剪
       container.add(lockText);
+    }
+    
+    return container;
+  }
+  
+  /**
+   * 场景销毁时清理
+   */
+  shutdown(): void {
+    // 移除 resize 监听器
+    if (this.scale) {
+      this.scale.off('resize', this.handleResize, this);
     }
   }
   

@@ -20,6 +20,7 @@ export default class PreloadScene extends Phaser.Scene {
   private stars: Phaser.GameObjects.Graphics[] = [];
   private currentTipIndex: number = 0;
   private tipInterval!: Phaser.Time.TimerEvent;
+  private uiElements: { [key: string]: any } = {};
   
   // 加载提示文字
   private readonly loadingTips = [

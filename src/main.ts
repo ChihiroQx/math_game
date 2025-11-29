@@ -234,6 +234,16 @@ if (isMobile) {
     if (gameInstance && gameInstance.scale) {
       // FIT 模式会自动调整，保持宽高比，尽可能铺满屏幕
       gameInstance.scale.refresh();
+      // 延迟通知所有场景进行重新布局，等待scale完全刷新
+      setTimeout(() => {
+        if (gameInstance.scene && gameInstance.scene.scenes) {
+          gameInstance.scene.scenes.forEach((scene: Phaser.Scene) => {
+            if (scene.scene.isActive() && typeof (scene as any).handleResize === 'function') {
+              (scene as any).handleResize();
+            }
+          });
+        }
+      }, 150);
     }
   });
 }
@@ -242,9 +252,93 @@ if (isMobile) {
 if (!isMobile) {
   window.addEventListener('resize', () => {
     const gameInstance = (window as any).game;
+    const container = document.getElementById('game-container');
+    
+    // 更新CSS变量
+    const vh = window.innerHeight * 0.01;
+    document.documentElement.style.setProperty('--vh', `${vh * 100}px`);
+    
+    // 确保容器可见且有正确尺寸
+    if (container) {
+      const computedStyle = getComputedStyle(container);
+      // 如果容器被隐藏，强制显示
+      if (computedStyle.display === 'none') {
+        container.style.setProperty('display', 'flex', 'important');
+      }
+      // 确保容器占满整个视口
+      container.style.setProperty('display', 'flex', 'important');
+      container.style.setProperty('position', 'fixed', 'important');
+      container.style.setProperty('top', '0', 'important');
+      container.style.setProperty('left', '0', 'important');
+      container.style.setProperty('right', '0', 'important');
+      container.style.setProperty('bottom', '0', 'important');
+      container.style.setProperty('width', '100vw', 'important');
+      container.style.setProperty('height', '100vh', 'important');
+    }
+    
     if (gameInstance && gameInstance.scale) {
       // FIT 模式会自动调整，保持宽高比，尽可能铺满屏幕
       gameInstance.scale.refresh();
+      
+      // 延迟通知所有场景进行重新布局，等待scale完全刷新
+      setTimeout(() => {
+        if (gameInstance.scene && gameInstance.scene.scenes) {
+          gameInstance.scene.scenes.forEach((scene: Phaser.Scene) => {
+            if (scene.scene.isActive() && typeof (scene as any).handleResize === 'function') {
+              (scene as any).handleResize();
+            }
+          });
+        }
+      }, 150);
     }
   });
 }
+
+// 监听全屏变化事件（所有平台）
+const handleFullscreenChange = () => {
+  // 更新CSS变量
+  const vh = window.innerHeight * 0.01;
+  document.documentElement.style.setProperty('--vh', `${vh * 100}px`);
+  
+  // 延迟处理，确保全屏切换动画完成
+  setTimeout(() => {
+    const gameInstance = (window as any).game;
+    const container = document.getElementById('game-container');
+    
+    // 确保容器可见且有正确尺寸
+    if (container) {
+      // 强制设置容器样式，确保占满整个视口
+      container.style.setProperty('display', 'flex', 'important');
+      container.style.setProperty('position', 'fixed', 'important');
+      container.style.setProperty('top', '0', 'important');
+      container.style.setProperty('left', '0', 'important');
+      container.style.setProperty('right', '0', 'important');
+      container.style.setProperty('bottom', '0', 'important');
+      container.style.setProperty('width', '100vw', 'important');
+      container.style.setProperty('height', '100vh', 'important');
+      container.style.setProperty('margin', '0', 'important');
+      container.style.setProperty('padding', '0', 'important');
+    }
+    
+    if (gameInstance && gameInstance.scale) {
+      // 强制刷新scale
+      gameInstance.scale.refresh();
+      // 延迟通知所有场景进行重新布局
+      setTimeout(() => {
+        if (gameInstance.scene && gameInstance.scene.scenes) {
+          gameInstance.scene.scenes.forEach((scene: Phaser.Scene) => {
+            if (scene.scene.isActive() && typeof (scene as any).handleResize === 'function') {
+              (scene as any).handleResize();
+            }
+          });
+        }
+      }, 200);
+    }
+  }, 150);
+};
+
+// 监听各种全屏变化事件
+document.addEventListener('fullscreenchange', handleFullscreenChange);
+document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+document.addEventListener('MSFullscreenChange', handleFullscreenChange);
